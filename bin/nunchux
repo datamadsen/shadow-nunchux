@@ -1,0 +1,336 @@
+#!/usr/bin/env bash
+#
+# nunchux - Smart tmux app launcher
+#
+# Features:
+#   - fzf-powered app selection with fuzzy search
+#   - Shows running indicator for active apps
+#   - Switches to existing window or opens new one
+#   - Ctrl-X to kill a running app
+#   - Opens apps in current working directory
+#
+
+set -euo pipefail
+
+NUNCHUX_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/nunchux"
+NUNCHUX_RC_FILE="$NUNCHUX_CONFIG_DIR/config"
+NUNCHUX_RC_FALLBACK="$HOME/.nunchuxrc"
+
+# Defaults (can be overridden in config)
+ICON_RUNNING="●"
+ICON_STOPPED="○"
+
+# Default app popup dimensions
+APP_POPUP_WIDTH="90%"
+APP_POPUP_HEIGHT="90%"
+
+# FZF styling
+FZF_PROMPT=" "
+FZF_POINTER="▶"
+FZF_BORDER="rounded"
+FZF_BORDER_LABEL=" nunchux "
+FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray"
+
+# App storage (populated by chuck function)
+declare -a CHUCKS=()
+
+# Define an app: chuck name command description [width] [height]
+chuck() {
+    local name="$1"
+    local cmd="$2"
+    local desc="${3:-}"
+    local width="${4:-}"
+    local height="${5:-}"
+    CHUCKS+=("$name:$cmd:$desc:$width:$height")
+}
+
+# Load config file (XDG location, then fallback)
+if [[ -f "$NUNCHUX_RC_FILE" ]]; then
+    source "$NUNCHUX_RC_FILE"
+elif [[ -f "$NUNCHUX_RC_FALLBACK" ]]; then
+    source "$NUNCHUX_RC_FALLBACK"
+fi
+
+# Default apps if none configured
+if [[ ${#CHUCKS[@]} -eq 0 ]]; then
+    chuck btop "btop" "System monitor"
+    chuck lazygit "lazygit" "Git TUI"
+    chuck lazydocker "lazydocker" "Docker TUI"
+fi
+
+# Get apps from CHUCKS array
+load_apps() {
+    printf '%s\n' "${CHUCKS[@]}"
+}
+
+# Parse app spec (name:cmd:desc:width:height)
+get_app_name() { echo "${1%%:*}"; }
+get_app_command() {
+    local rest="${1#*:}"
+    echo "${rest%%:*}"
+}
+get_app_description() {
+    local spec="$1"
+    echo "$spec" | cut -d: -f3
+}
+get_app_width() {
+    local spec="$1"
+    echo "$spec" | cut -d: -f4
+}
+get_app_height() {
+    local spec="$1"
+    echo "$spec" | cut -d: -f5
+}
+
+# Check if app is running (has a tmux window with that name)
+is_app_running() {
+    local name="$1"
+    tmux list-windows -F '#{window_name}' 2>/dev/null | grep -qx "$name"
+}
+
+# Get list of running app windows
+get_running_apps() {
+    tmux list-windows -F '#{window_name}' 2>/dev/null || true
+}
+
+# Build the fzf menu entries
+build_menu() {
+    local running_apps
+    running_apps=$(get_running_apps)
+
+    while IFS= read -r app; do
+        local name cmd desc width height icon
+        name=$(get_app_name "$app")
+        cmd=$(get_app_command "$app")
+        desc=$(get_app_description "$app")
+        width=$(get_app_width "$app")
+        height=$(get_app_height "$app")
+
+        if echo "$running_apps" | grep -qx "$name"; then
+            icon="$ICON_RUNNING"
+        else
+            icon="$ICON_STOPPED"
+        fi
+
+        # Format: visible_part \t name \t command \t width \t height
+        printf "%s  %-12s  %s\t%s\t%s\t%s\t%s\n" "$icon" "$name" "$desc" "$name" "$cmd" "$width" "$height"
+    done < <(load_apps)
+}
+
+# Get current pane's working directory
+get_current_dir() {
+    tmux display-message -p '#{pane_current_path}' 2>/dev/null || pwd
+}
+
+# Switch to an existing app window
+switch_to_app() {
+    local name="$1"
+    tmux select-window -t "$name" 2>/dev/null
+}
+
+# Open a new app in a new tmux window
+open_app() {
+    local name="$1"
+    local cmd="$2"
+    local dir
+    dir=$(get_current_dir)
+
+    # Create new window with the app
+    tmux new-window -n "$name" -c "$dir" "$cmd"
+}
+
+# Open app in a new popup with app-specific dimensions
+open_popup() {
+    local name="$1"
+    local cmd="$2"
+    local app_width="$3"
+    local app_height="$4"
+    local dir
+    dir=$(get_current_dir)
+
+    # Use app-specific dimensions, fall back to defaults
+    local width height
+    width="${app_width:-$APP_POPUP_WIDTH}"
+    height="${app_height:-$APP_POPUP_HEIGHT}"
+    # Add % suffix if just a number
+    [[ "$width" =~ ^[0-9]+$ ]] && width="${width}%"
+    [[ "$height" =~ ^[0-9]+$ ]] && height="${height}%"
+
+    # Schedule new popup and exit current one
+    # Use bash -c to wrap with error handling
+    local errmsg="Command failed: $cmd"
+    tmux run-shell -b "tmux display-popup -E -w $width -h $height -d \"$dir\" bash -c \"$cmd || { echo; echo '$errmsg'; echo 'Press Enter to close'; read; }\""
+    exit 0
+}
+
+# Kill a running app window
+kill_app() {
+    local name="$1"
+    if is_app_running "$name"; then
+        tmux kill-window -t "$name" 2>/dev/null
+        echo "Killed: $name"
+    fi
+}
+
+# Main launcher using fzf
+launch() {
+    # Check dependencies
+    if ! command -v fzf &>/dev/null; then
+        echo "Error: fzf is required. Install it first." >&2
+        exit 1
+    fi
+
+    if ! command -v tmux &>/dev/null; then
+        echo "Error: tmux is required." >&2
+        exit 1
+    fi
+
+    if [[ -z "${TMUX:-}" ]]; then
+        echo "Error: Must be run inside tmux." >&2
+        exit 1
+    fi
+
+    local selection
+    local script_path
+    script_path=$(realpath "$0")
+
+    # Run fzf with our menu
+    selection=$(build_menu | fzf \
+        --delimiter='\t' \
+        --with-nth=1 \
+        --header="Enter: popup | Ctrl-O: window | Ctrl-X: kill" \
+        --header-first \
+        --prompt="$FZF_PROMPT" \
+        --pointer="$FZF_POINTER" \
+        --layout=reverse \
+        --height=40% \
+        --min-height=8 \
+        --border="$FZF_BORDER" \
+        --border-label="$FZF_BORDER_LABEL" \
+        --border-label-pos=3 \
+        --no-preview \
+        --expect=ctrl-o \
+        --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $script_path --menu)" \
+        --color="$FZF_COLORS" \
+    ) || true
+
+    if [[ -z "$selection" ]]; then
+        return 0
+    fi
+
+    # Parse: first line is key pressed (if --expect matched), rest is selection
+    local key selected_line
+    key=$(echo "$selection" | head -1)
+    selected_line=$(echo "$selection" | tail -1)
+
+    if [[ -z "$selected_line" ]]; then
+        return 0
+    fi
+
+    # Extract fields (tab-separated: visible \t name \t cmd \t width \t height)
+    local name cmd width height
+    name=$(echo "$selected_line" | cut -f2)
+    cmd=$(echo "$selected_line" | cut -f3)
+    width=$(echo "$selected_line" | cut -f4)
+    height=$(echo "$selected_line" | cut -f5)
+
+    if [[ -z "$name" ]]; then
+        return 0
+    fi
+
+    # Handle based on key pressed
+    if [[ "$key" == "ctrl-o" ]]; then
+        if is_app_running "$name"; then
+            switch_to_app "$name"
+        else
+            open_app "$name" "$cmd"
+        fi
+    else
+        open_popup "$name" "$cmd" "$width" "$height"
+    fi
+}
+
+# Show help
+usage() {
+    cat <<EOF
+nunchux - Smart tmux app launcher
+
+Usage: nunchux [options]
+
+Options:
+    (none)          Launch the app selector
+    --list          List configured apps
+    --help          Show this help
+
+Configuration:
+    Config file: $NUNCHUX_RC_FILE
+    Fallback:    $NUNCHUX_RC_FALLBACK
+
+    Example config:
+        # Icons
+        ICON_RUNNING="●"
+        ICON_STOPPED="○"
+
+        # Default popup dimensions
+        APP_POPUP_WIDTH="90%"
+        APP_POPUP_HEIGHT="90%"
+
+        # Apps: chuck name command description [width] [height]
+        chuck btop       "btop"         "System monitor"
+        chuck lazygit    "lazygit"      "Git TUI"         95 95
+        chuck notes      "nvim ~/notes" "Quick notes"     80 60
+
+Controls:
+    Enter           Open in popup
+    Ctrl-O          Open in window (or switch if running)
+    Ctrl-X          Kill running app
+    Escape          Cancel
+EOF
+}
+
+# List apps
+list_apps() {
+    echo "Configured apps:"
+    echo ""
+    while IFS= read -r app; do
+        local name cmd desc
+        name=$(get_app_name "$app")
+        cmd=$(get_app_command "$app")
+        desc=$(get_app_description "$app")
+
+        if is_app_running "$name"; then
+            printf "  %s %-12s %s\n" "$ICON_RUNNING" "$name" "$desc"
+        else
+            printf "  %s %-12s %s\n" "$ICON_STOPPED" "$name" "$desc"
+        fi
+    done < <(load_apps)
+}
+
+# Main
+main() {
+    case "${1:-}" in
+        --kill)
+            shift
+            kill_app "$1"
+            ;;
+        --menu)
+            build_menu
+            ;;
+        --list)
+            list_apps
+            ;;
+        --help|-h|help)
+            usage
+            ;;
+        "")
+            launch
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

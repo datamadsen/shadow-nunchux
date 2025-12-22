@@ -1,0 +1,69 @@
+# Nunchux Configuration
+#
+# Copy to: ~/.config/nunchux/config
+# Fallback: ~/.nunchuxrc
+#
+# This file is sourced as bash, so you can use variables and logic.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Icons
+# ─────────────────────────────────────────────────────────────────────────────
+ICON_RUNNING="●"
+ICON_STOPPED="○"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Default popup dimensions (used when app doesn't specify its own)
+# ─────────────────────────────────────────────────────────────────────────────
+APP_POPUP_WIDTH="90%"
+APP_POPUP_HEIGHT="90%"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FZF styling
+# ─────────────────────────────────────────────────────────────────────────────
+FZF_PROMPT=" "
+FZF_POINTER="▶"
+FZF_BORDER="rounded"
+FZF_BORDER_LABEL=" nunchux "
+FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Apps
+# ─────────────────────────────────────────────────────────────────────────────
+# Format: chuck name command description [width] [height]
+#
+# - name:        Window name (keep short, no spaces)
+# - command:     Command to run (quote if it contains spaces)
+# - description: Shown in the launcher menu
+# - width:       Optional popup width (number = %, or "80%" explicitly)
+# - height:      Optional popup height
+
+# System
+chuck btop       "btop"         "System monitor"
+chuck htop       "htop"         "Process viewer"
+
+# Git
+chuck lazygit    "lazygit"      "Git TUI"
+
+# Docker
+chuck lazydocker "lazydocker"   "Docker TUI"
+
+# Kubernetes (uncomment if you use k9s)
+# chuck k9s      "k9s"          "Kubernetes TUI"
+
+# File managers
+# chuck yazi     "yazi"         "File manager"
+# chuck ranger   "ranger"       "File manager"
+
+# Editors/Notes (with custom dimensions)
+# chuck notes    "nvim ~/notes"    "Quick notes"     80 60
+# chuck todos    "nvim ~/todos.md" "Todo list"       70 50
+
+# Databases
+# chuck pgcli    "pgcli"        "PostgreSQL client"
+# chuck mycli    "mycli"        "MySQL client"
+
+# Network
+# chuck bandwhich "sudo bandwhich" "Network monitor"
+
+# Logs
+# chuck lnav     "lnav"         "Log viewer"        95 90
