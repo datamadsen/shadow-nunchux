@@ -37,18 +37,29 @@ FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:gree
 # - width:       Optional popup width (number = %, or "80%" explicitly)
 # - height:      Optional popup height
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Dynamic Status
+# ─────────────────────────────────────────────────────────────────────────────
+# Format: chuck_status name "command"
+#
+# Runs command when building the menu and appends output to description.
+# Useful for showing counts, status indicators, etc.
+
 # System
 chuck btop       "btop"         "System monitor"
 chuck htop       "htop"         "Process viewer"
 
-# Git
-chuck lazygit    "lazygit"      "Git TUI"
+# Git - show number of changed files
+chuck git        "lazygit"      "Git"
+chuck_status git "n=\$(git status -s 2>/dev/null | wc -l | tr -d ' '); [[ \$n -gt 0 ]] && echo \"(\$n changed)\""
 
-# Docker
-chuck lazydocker "lazydocker"   "Docker TUI"
+# Docker - show running container count
+chuck docker     "lazydocker"   "Docker"
+chuck_status docker "n=\$(docker ps -q 2>/dev/null | wc -l | tr -d ' '); [[ \$n -gt 0 ]] && echo \"(\$n running)\""
 
 # Kubernetes (uncomment if you use k9s)
-# chuck k9s      "k9s"          "Kubernetes TUI"
+# chuck k9s      "k9s"          "Kubernetes"
+# chuck_status k9s "ctx=\$(kubectl config current-context 2>/dev/null); [[ -n \"\$ctx\" ]] && echo \"(\$ctx)\""
 
 # File managers
 # chuck yazi     "yazi"         "File manager"

@@ -33,6 +33,7 @@ FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:gree
 
 # App storage (populated by chuck function)
 declare -a CHUCKS=()
+declare -A CHUCK_STATUS=()
 
 # Define an app: chuck name command description [width] [height]
 chuck() {
@@ -42,6 +43,13 @@ chuck() {
     local width="${4:-}"
     local height="${5:-}"
     CHUCKS+=("$name:$cmd:$desc:$width:$height")
+}
+
+# Add dynamic status to an app: chuck_status name "command"
+chuck_status() {
+    local name="$1"
+    local status_cmd="$2"
+    CHUCK_STATUS["$name"]="$status_cmd"
 }
 
 # Load config file (XDG location, then fallback)
@@ -99,7 +107,7 @@ build_menu() {
     running_apps=$(get_running_apps)
 
     while IFS= read -r app; do
-        local name cmd desc width height icon
+        local name cmd desc width height icon status_output
         name=$(get_app_name "$app")
         cmd=$(get_app_command "$app")
         desc=$(get_app_description "$app")
@@ -110,6 +118,18 @@ build_menu() {
             icon="$ICON_RUNNING"
         else
             icon="$ICON_STOPPED"
+        fi
+
+        # Run status command if defined
+        if [[ -n "${CHUCK_STATUS[$name]:-}" ]]; then
+            status_output=$(eval "${CHUCK_STATUS[$name]}" 2>/dev/null || true)
+            if [[ -n "$status_output" ]]; then
+                if [[ -n "$desc" ]]; then
+                    desc="$desc $status_output"
+                else
+                    desc="$status_output"
+                fi
+            fi
         fi
 
         # Format: visible_part \t name \t command \t width \t height
