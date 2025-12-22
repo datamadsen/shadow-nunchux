@@ -20,6 +20,10 @@ NUNCHUX_RC_FALLBACK="$HOME/.nunchuxrc"
 ICON_RUNNING="●"
 ICON_STOPPED="○"
 
+# Default menu popup dimensions (the fzf selector)
+MENU_WIDTH="60%"
+MENU_HEIGHT="50%"
+
 # Default app popup dimensions
 APP_POPUP_WIDTH="90%"
 APP_POPUP_HEIGHT="90%"
@@ -37,39 +41,115 @@ FZF_BORDER="rounded"
 FZF_BORDER_LABEL=" nunchux "
 FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray"
 
-# App storage (populated by chuck function)
+# App storage
 declare -a CHUCKS=()
 declare -A CHUCK_STATUS=()
 
-# Define an app: chuck name command description [width] [height]
-chuck() {
-    local name="$1"
-    local cmd="$2"
-    local desc="${3:-}"
-    local width="${4:-}"
-    local height="${5:-}"
-    CHUCKS+=("$name:$cmd:$desc:$width:$height")
+# Parse INI config file
+parse_config() {
+    local config_file="$1"
+    local current_section=""
+    local line key value
+    local continued_value="" continued_key=""
+    local app_cmd="" app_desc="" app_width="" app_height="" app_status="" app_status_script=""
+
+    save_app() {
+        if [[ -n "$current_section" && "$current_section" != "settings" && -n "$app_cmd" ]]; then
+            CHUCKS+=("$current_section:$app_cmd:$app_desc:$app_width:$app_height")
+            if [[ -n "$app_status_script" ]]; then
+                CHUCK_STATUS["$current_section"]="source ${app_status_script/#\~/$HOME}"
+            elif [[ -n "$app_status" ]]; then
+                CHUCK_STATUS["$current_section"]="$app_status"
+            fi
+        fi
+    }
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Handle line continuation
+        if [[ -n "$continued_key" ]]; then
+            line="${line#"${line%%[![:space:]]*}"}"
+            if [[ "$line" == *\\ ]]; then
+                continued_value+="${line%\\}"
+                continue
+            else
+                continued_value+="$line"
+                line="$continued_key = $continued_value"
+                continued_key=""
+                continued_value=""
+            fi
+        fi
+
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+
+        # Section header
+        if [[ "$line" =~ ^\[([^\]]+)\] ]]; then
+            save_app
+            current_section="${BASH_REMATCH[1]}"
+            app_cmd="" app_desc="" app_width="" app_height="" app_status="" app_status_script=""
+            continue
+        fi
+
+        # Key = value (split on first =)
+        if [[ "$line" =~ ^[[:space:]]*([^=]+)=(.*)$ ]]; then
+            key="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
+            key="${key%"${key##*[![:space:]]}"}"
+            key="${key#"${key%%[![:space:]]*}"}"
+            value="${value#"${value%%[![:space:]]*}"}"
+
+            # Line continuation
+            if [[ "$value" == *\\ ]]; then
+                continued_key="$key"
+                continued_value="${value%\\}"
+                continue
+            fi
+
+            if [[ "$current_section" == "settings" ]]; then
+                case "$key" in
+                    icon_running) ICON_RUNNING="$value" ;;
+                    icon_stopped) ICON_STOPPED="$value" ;;
+                    menu_width) MENU_WIDTH="$value" ;;
+                    menu_height) MENU_HEIGHT="$value" ;;
+                    popup_width) APP_POPUP_WIDTH="$value" ;;
+                    popup_height) APP_POPUP_HEIGHT="$value" ;;
+                    just_enabled) JUST_ENABLED="$value" ;;
+                    npm_enabled) NPM_ENABLED="$value" ;;
+                    fzf_prompt) FZF_PROMPT="$value" ;;
+                    fzf_pointer) FZF_POINTER="$value" ;;
+                    fzf_border) FZF_BORDER="$value" ;;
+                    fzf_border_label) FZF_BORDER_LABEL="$value" ;;
+                    fzf_colors) FZF_COLORS="$value" ;;
+                esac
+            else
+                case "$key" in
+                    cmd) app_cmd="$value" ;;
+                    desc) app_desc="$value" ;;
+                    width) app_width="$value" ;;
+                    height) app_height="$value" ;;
+                    status) app_status="$value" ;;
+                    status_script) app_status_script="${value/#\~/$HOME}" ;;
+                esac
+            fi
+        fi
+    done < "$config_file"
+
+    save_app
 }
 
-# Add dynamic status to an app: chuck_status name "command"
-chuck_status() {
-    local name="$1"
-    local status_cmd="$2"
-    CHUCK_STATUS["$name"]="$status_cmd"
-}
-
-# Load config file (XDG location, then fallback)
+# Load config
 if [[ -f "$NUNCHUX_RC_FILE" ]]; then
-    source "$NUNCHUX_RC_FILE"
+    parse_config "$NUNCHUX_RC_FILE"
 elif [[ -f "$NUNCHUX_RC_FALLBACK" ]]; then
-    source "$NUNCHUX_RC_FALLBACK"
+    parse_config "$NUNCHUX_RC_FALLBACK"
 fi
 
 # Default apps if none configured
 if [[ ${#CHUCKS[@]} -eq 0 ]]; then
-    chuck btop "btop" "System monitor"
-    chuck lazygit "lazygit" "Git TUI"
-    chuck lazydocker "lazydocker" "Docker TUI"
+    CHUCKS+=("btop:btop:System monitor::")
+    CHUCKS+=("lazygit:lazygit:Git TUI::")
+    CHUCKS+=("lazydocker:lazydocker:Docker TUI::")
 fi
 
 # Get apps from CHUCKS array
@@ -428,6 +508,16 @@ main() {
             ;;
         --list)
             list_apps
+            ;;
+        --config)
+            shift
+            case "${1:-}" in
+                menu_width) echo "$MENU_WIDTH" ;;
+                menu_height) echo "$MENU_HEIGHT" ;;
+                popup_width) echo "$APP_POPUP_WIDTH" ;;
+                popup_height) echo "$APP_POPUP_HEIGHT" ;;
+                *) echo "Unknown config: $1" >&2; exit 1 ;;
+            esac
             ;;
         --help|-h|help)
             usage

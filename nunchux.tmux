@@ -6,15 +6,12 @@
 #   set -g @plugin 'path/to/nunchux'
 #
 # Options:
-#   set -g @nunchux-key "g"              # Keybinding (default: g)
-#   set -g @nunchux-popup-width "60%"    # Menu popup width
-#   set -g @nunchux-popup-height "50%"   # Menu popup height
-#   set -g @nunchux-app-width "90%"      # App popup width
-#   set -g @nunchux-app-height "90%"     # App popup height
+#   set -g @nunchux-key "g"    # Keybinding (default: g)
 #
+# Menu dimensions are configured in ~/.config/nunchux/config
 
 CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NUNCHUCKS_CMD="$CURRENT_DIR/bin/nunchux"
+NUNCHUX_CMD="$CURRENT_DIR/bin/nunchux"
 
 get_tmux_option() {
     local option="$1"
@@ -27,15 +24,15 @@ get_tmux_option() {
 main() {
     local key width height
     key=$(get_tmux_option "@nunchux-key" "g")
-    width=$(get_tmux_option "@nunchux-popup-width" "60%")
-    height=$(get_tmux_option "@nunchux-popup-height" "50%")
+    width=$("$NUNCHUX_CMD" --config menu_width)
+    height=$("$NUNCHUX_CMD" --config menu_height)
 
     # Bind key to open nunchux in a popup
     # Keys with "-" (like C-Space) bind without prefix, others require prefix
     if [[ $key == *"-"* ]]; then
-        tmux bind-key -n "$key" display-popup -E -w "$width" -h "$height" "$NUNCHUCKS_CMD"
+        tmux bind-key -n "$key" display-popup -E -w "$width" -h "$height" "$NUNCHUX_CMD"
     else
-        tmux bind-key "$key" display-popup -E -w "$width" -h "$height" "$NUNCHUCKS_CMD"
+        tmux bind-key "$key" display-popup -E -w "$width" -h "$height" "$NUNCHUX_CMD"
     fi
 }
 
