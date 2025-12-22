@@ -45,8 +45,9 @@ FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:gree
 # Runs command when building the menu and appends output to description.
 # Useful for showing counts, status indicators, etc.
 
-# System
-chuck btop       "btop"         "System monitor"
+# System - show load, ram, and disk usage
+chuck btop       "btop"         ""
+chuck_status btop "load=\$(cut -d' ' -f1 /proc/loadavg); ram=\$(awk '/MemAvailable/{printf \"%.0f\", \$2/1024/1024}' /proc/meminfo); disk=\$(df /home --output=avail 2>/dev/null | tail -1 | awk '{printf \"%.0f\", \$1/1024/1024}'); echo \"load: \$load | ram: \${ram}GB free | /home: \${disk}GB free\""
 chuck htop       "htop"         "Process viewer"
 
 # Git - show number of changed files
@@ -62,12 +63,16 @@ chuck_status docker "n=\$(docker ps -q 2>/dev/null | wc -l | tr -d ' '); [[ \$n 
 # chuck_status k9s "ctx=\$(kubectl config current-context 2>/dev/null); [[ -n \"\$ctx\" ]] && echo \"(\$ctx)\""
 
 # File managers
-# chuck yazi     "yazi"         "File manager"
+# Note: yazi doesn't work directly in tmux popups due to terminal passthrough issues
+# (see https://github.com/sxyazi/yazi/issues/2308). Workaround: wrap in nvim terminal.
+# chuck yazi     "nvim -c 'terminal yazi' -c 'startinsert' -c 'autocmd TermClose * qa!'"         "File manager"
 # chuck ranger   "ranger"       "File manager"
 
-# Editors/Notes (with custom dimensions)
-# chuck notes    "nvim ~/notes"    "Quick notes"     80 60
-# chuck todos    "nvim ~/todos.md" "Todo list"       70 50
+# Editors/Notes (with custom dimensions and status)
+# chuck notes    "nvim ~/notes"    ""     80 60
+# chuck_status notes "mins=\$(( (\$(date +%s) - \$(stat -c %Y ~/notes 2>/dev/null || echo 0)) / 60 )); [[ \$mins -lt 60 ]] && echo \"(\${mins}m ago)\" || echo \"(\$((\$mins/60))h ago)\""
+# chuck todos    "nvim ~/todos.md" ""       70 50
+# chuck_status todos "n=\$(wc -l < ~/todos.md 2>/dev/null || echo 0); echo \"(\$n lines)\""
 
 # Databases
 # chuck pgcli    "pgcli"        "PostgreSQL client"

@@ -177,9 +177,7 @@ open_popup() {
     [[ "$height" =~ ^[0-9]+$ ]] && height="${height}%"
 
     # Schedule new popup and exit current one
-    # Use bash -c to wrap with error handling
-    local errmsg="Command failed: $cmd"
-    tmux run-shell -b "tmux display-popup -E -w $width -h $height -d \"$dir\" bash -c \"$cmd || { echo; echo '$errmsg'; echo 'Press Enter to close'; read; }\""
+    tmux run-shell -b "tmux display-popup -E -w $width -h $height -d \"$dir\" $cmd"
     exit 0
 }
 
