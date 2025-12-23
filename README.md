@@ -128,6 +128,28 @@ status = load=$(cut -d' ' -f1 /proc/loadavg); \
          echo "load: $load | ram: ${ram}GB"
 ```
 
+### Helper functions
+
+Nunchux provides helper functions you can use in status commands:
+
+* `ago <file>` - relative modification time (`5s ago`, `3m ago`, `2h ago`, `7d ago`)
+* `lines <file>` - line count with pluralization (`1 line`, `42 lines`)
+* `nearest <file>` - find file by traversing upward from current directory
+
+```ini
+[config]
+cmd = nvim ~/.config/nunchux/config
+status = echo "($(ago ~/.config/nunchux/config))"
+
+[todos]
+cmd = nvim ~/todos.md
+status = echo "($(lines ~/todos.md))"
+
+[notes]
+cmd = bash -c 'f=$(nearest notes.md) && exec nvim "$f" || echo "Not found"'
+status = f=$(nearest notes.md) && echo "($(lines "$f"), $(ago "$f"))"
+```
+
 ## Dependencies
 
 * tmux (duh)
