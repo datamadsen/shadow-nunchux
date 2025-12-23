@@ -1,5 +1,6 @@
 # nunchux notes
 
 Nice usages?
-- Calendar
+
+- Calendar. Done, used calcurses.
 - Spotify
