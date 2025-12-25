@@ -792,6 +792,30 @@ build_menu() {
     fi
 }
 
+# Build common fzf options array
+# Usage: build_fzf_opts opts_array "header text" "border label"
+build_fzf_opts() {
+    local -n opts=$1
+    local header="$2"
+    local border_label="$3"
+    opts=(
+        --delimiter='\t'
+        --with-nth=1
+        --header="$header"
+        --header-first
+        --prompt="$FZF_PROMPT"
+        --pointer="$FZF_POINTER"
+        --layout=reverse
+        --height=100%
+        --border="$FZF_BORDER"
+        --border-label="$border_label"
+        --border-label-pos=3
+        --no-preview
+        --expect=ctrl-o
+        --color="$FZF_COLORS"
+    )
+}
+
 # Get current pane's working directory
 get_current_dir() {
     tmux display-message -p '#{pane_current_path}' 2>/dev/null || pwd
@@ -938,55 +962,26 @@ launch_dirbrowse() {
     cache_file=$(get_dirbrowse_cache_file "$name")
     socket=$(get_dirbrowse_socket "$name")
 
+    # Build fzf options
+    local fzf_opts
+    build_fzf_opts fzf_opts "Enter: edit | Ctrl-O: window | Esc: back" " $name "
+    fzf_opts+=(--ansi)  # dirbrowse has colored output
+
     # Check if we have a valid cache
     if is_cache_valid "$cache_file" "$cache_ttl"; then
         # Cache is valid - load instantly and refresh in background
-        # Start background refresh (will hot-swap via socket when ready)
         refresh_dirbrowse_cache "$name" "$socket" &
         local refresh_pid=$!
 
         # Run fzf with cached content and --listen for hot-swap
-        selection=$(cat "$cache_file" | fzf \
-            --listen "$socket" \
-            --ansi \
-            --delimiter='\t' \
-            --with-nth=1 \
-            --header="Enter: edit | Ctrl-O: window | Esc: back" \
-            --header-first \
-            --prompt="$FZF_PROMPT" \
-            --pointer="$FZF_POINTER" \
-            --layout=reverse \
-            --height=100% \
-            --border="$FZF_BORDER" \
-            --border-label=" $name " \
-            --border-label-pos=3 \
-            --no-preview \
-            --expect=ctrl-o \
-            --color="$FZF_COLORS" \
-        ) || true
+        selection=$(cat "$cache_file" | fzf "${fzf_opts[@]}" --listen "$socket") || true
 
         # Clean up background job if still running
         kill $refresh_pid 2>/dev/null || true
         rm -f "$socket" 2>/dev/null || true
     else
         # No valid cache - stream to fzf AND save to cache via tee
-        selection=$(build_dirbrowse_menu "$name" | tee "$cache_file" | fzf \
-            --ansi \
-            --delimiter='\t' \
-            --with-nth=1 \
-            --header="Enter: edit | Ctrl-O: window | Esc: back" \
-            --header-first \
-            --prompt="$FZF_PROMPT" \
-            --pointer="$FZF_POINTER" \
-            --layout=reverse \
-            --height=100% \
-            --border="$FZF_BORDER" \
-            --border-label=" $name " \
-            --border-label-pos=3 \
-            --no-preview \
-            --expect=ctrl-o \
-            --color="$FZF_COLORS" \
-        ) || true
+        selection=$(build_dirbrowse_menu "$name" | tee "$cache_file" | fzf "${fzf_opts[@]}") || true
     fi
 
     if [[ -z "$selection" ]]; then
@@ -1068,30 +1063,18 @@ launch() {
     cache_file=$(get_main_menu_cache_file)
     socket=$(get_main_menu_socket)
 
+    # Build fzf options
+    local fzf_opts
+    build_fzf_opts fzf_opts "$header" "$FZF_BORDER_LABEL"
+    fzf_opts+=(--bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)")
+
     # Use caching for main menu (not submenus - they're fast)
     if [[ -z "$CURRENT_SUBMENU" ]] && is_cache_valid "$cache_file" "$cache_ttl"; then
         # Cache is valid - load instantly and refresh in background
         refresh_main_menu_cache "$socket" &
         local refresh_pid=$!
 
-        selection=$(cat "$cache_file" | fzf \
-            --listen "$socket" \
-            --delimiter='\t' \
-            --with-nth=1 \
-            --header="$header" \
-            --header-first \
-            --prompt="$FZF_PROMPT" \
-            --pointer="$FZF_POINTER" \
-            --layout=reverse \
-            --height=100% \
-            --border="$FZF_BORDER" \
-            --border-label="$FZF_BORDER_LABEL" \
-            --border-label-pos=3 \
-            --no-preview \
-            --expect=ctrl-o \
-            --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
-            --color="$FZF_COLORS" \
-        ) || true
+        selection=$(cat "$cache_file" | fzf "${fzf_opts[@]}" --listen "$socket") || true
 
         # Clean up background job
         kill $refresh_pid 2>/dev/null || true
@@ -1100,23 +1083,7 @@ launch() {
         # No valid cache or in submenu - build fresh with streaming
         if [[ -z "$CURRENT_SUBMENU" ]]; then
             # Stream to fzf AND save to cache via tee
-            selection=$(build_menu | tee "$cache_file" | fzf \
-                --delimiter='\t' \
-                --with-nth=1 \
-                --header="$header" \
-                --header-first \
-                --prompt="$FZF_PROMPT" \
-                --pointer="$FZF_POINTER" \
-                --layout=reverse \
-                --height=100% \
-                --border="$FZF_BORDER" \
-                --border-label="$FZF_BORDER_LABEL" \
-                --border-label-pos=3 \
-                --no-preview \
-                --expect=ctrl-o \
-                --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
-                --color="$FZF_COLORS" \
-            ) || true
+            selection=$(build_menu | tee "$cache_file" | fzf "${fzf_opts[@]}") || true
         else
             # Submenu - use submenu cache with per-submenu TTL
             local submenu_cache submenu_socket submenu_ttl
@@ -1129,46 +1096,13 @@ launch() {
                 refresh_submenu_cache "$CURRENT_SUBMENU" "$submenu_socket" &
                 local submenu_refresh_pid=$!
 
-                selection=$(cat "$submenu_cache" | fzf \
-                    --listen "$submenu_socket" \
-                    --delimiter='\t' \
-                    --with-nth=1 \
-                    --header="$header" \
-                    --header-first \
-                    --prompt="$FZF_PROMPT" \
-                    --pointer="$FZF_POINTER" \
-                    --layout=reverse \
-                    --height=100% \
-                    --border="$FZF_BORDER" \
-                    --border-label="$FZF_BORDER_LABEL" \
-                    --border-label-pos=3 \
-                    --no-preview \
-                    --expect=ctrl-o \
-                    --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
-                    --color="$FZF_COLORS" \
-                ) || true
+                selection=$(cat "$submenu_cache" | fzf "${fzf_opts[@]}" --listen "$submenu_socket") || true
 
                 kill $submenu_refresh_pid 2>/dev/null || true
                 rm -f "$submenu_socket" 2>/dev/null || true
             else
                 # No valid cache - stream to fzf AND save to cache via tee
-                selection=$(build_menu | tee "$submenu_cache" | fzf \
-                    --delimiter='\t' \
-                    --with-nth=1 \
-                    --header="$header" \
-                    --header-first \
-                    --prompt="$FZF_PROMPT" \
-                    --pointer="$FZF_POINTER" \
-                    --layout=reverse \
-                    --height=100% \
-                    --border="$FZF_BORDER" \
-                    --border-label="$FZF_BORDER_LABEL" \
-                    --border-label-pos=3 \
-                    --no-preview \
-                    --expect=ctrl-o \
-                    --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
-                    --color="$FZF_COLORS" \
-                ) || true
+                selection=$(build_menu | tee "$submenu_cache" | fzf "${fzf_opts[@]}") || true
             fi
         fi
     fi
