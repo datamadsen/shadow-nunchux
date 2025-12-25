@@ -57,6 +57,33 @@ MENU_CACHE_TTL=60
 # Internal field separator for app specs (colons appear in commands)
 readonly APP_SEP=":::"
 
+# Platform detection for GNU vs BSD tools
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    IS_MACOS=true
+else
+    IS_MACOS=false
+fi
+
+# Get file modification time as epoch seconds (cross-platform)
+get_mtime() {
+    if $IS_MACOS; then
+        stat -f %m "$1" 2>/dev/null || echo 0
+    else
+        stat -c %Y "$1" 2>/dev/null || echo 0
+    fi
+}
+
+# Find files with mtime - outputs: mtime\tpath (cross-platform)
+# Usage: find_with_mtime "${find_args[@]}"
+find_with_mtime() {
+    if $IS_MACOS; then
+        # BSD find doesn't have -printf, use stat instead
+        find "$@" -exec stat -f '%m' {} \; -print 2>/dev/null | paste - -
+    else
+        find "$@" -printf '%T@\t%p\n' 2>/dev/null
+    fi
+}
+
 # Easter egg: Chuck Norris programming facts
 CHUCK_FACTS=(
     "Chuck Norris can unit test entire applications with a single assert."
@@ -442,7 +469,7 @@ is_cache_valid() {
     [[ "$ttl" == "0" ]] && return 1
     [[ ! -f "$cache_file" ]] && return 1
 
-    local cache_age=$(( $(date +%s) - $(stat -c %Y "$cache_file" 2>/dev/null || echo 0) ))
+    local cache_age=$(( $(date +%s) - $(get_mtime "$cache_file") ))
     [[ $cache_age -lt $ttl ]]
 }
 
@@ -568,7 +595,7 @@ build_dirbrowse_menu() {
     case "$sort_mode" in
         alphabetical)
             # Sort by folder/filename alphabetically
-            sorted_files=$(find "${find_args[@]}" -printf '%T@\t%p\n' 2>/dev/null | awk -F'\t' -v dir="$dir" '
+            sorted_files=$(find_with_mtime "${find_args[@]}" | awk -F'\t' -v dir="$dir" '
             {
                 mtime = $1
                 file = $2
@@ -582,7 +609,7 @@ build_dirbrowse_menu() {
             ;;
         modified-folder)
             # Folders ordered by most recent file, files within folder by recency
-            sorted_files=$(find "${find_args[@]}" -printf '%T@\t%p\n' 2>/dev/null | awk -F'\t' -v dir="$dir" '
+            sorted_files=$(find_with_mtime "${find_args[@]}" | awk -F'\t' -v dir="$dir" '
             {
                 mtime = $1
                 file = $2
@@ -606,7 +633,7 @@ build_dirbrowse_menu() {
             ;;
         modified|*)
             # Simple sort by modification time
-            sorted_files=$(find "${find_args[@]}" -printf '%T@\t%p\n' 2>/dev/null | awk -F'\t' -v dir="$dir" '
+            sorted_files=$(find_with_mtime "${find_args[@]}" | awk -F'\t' -v dir="$dir" '
             {
                 mtime = $1
                 file = $2
