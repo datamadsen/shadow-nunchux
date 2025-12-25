@@ -51,12 +51,16 @@ FZF_BORDER="rounded"
 FZF_BORDER_LABEL=" nunchux "
 FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray"
 
+# Cache settings
+MENU_CACHE_TTL=60
+
 # App storage
 declare -a CHUCKS=()
 declare -A CHUCK_STATUS=()
 declare -A SUBMENUS=()
 declare -A SUBMENU_STATUS=()
 declare -A SUBMENU_DESC=()
+declare -A SUBMENU_CACHE_TTL=()
 
 # Directory browser storage
 declare -A DIRBROWSE_DIR=()
@@ -106,6 +110,9 @@ parse_config() {
                 fi
                 if [[ -n "$app_desc" ]]; then
                     SUBMENU_DESC["$current_section"]="$app_desc"
+                fi
+                if [[ -n "$app_cache_ttl" ]]; then
+                    SUBMENU_CACHE_TTL["$current_section"]="$app_cache_ttl"
                 fi
                 return
             fi
@@ -183,6 +190,7 @@ parse_config() {
                     fzf_border) FZF_BORDER="$value" ;;
                     fzf_border_label) FZF_BORDER_LABEL="$value" ;;
                     fzf_colors) FZF_COLORS="$value" ;;
+                    cache_ttl) MENU_CACHE_TTL="$value" ;;
                 esac
             else
                 case "$key" in
@@ -306,7 +314,25 @@ get_npm_scripts() {
     fi
 }
 
-# Cache helper functions for directory browser
+# Cache helper functions
+get_main_menu_cache_file() {
+    echo "/tmp/nunchux-main-menu.cache"
+}
+
+get_main_menu_socket() {
+    echo "/tmp/nunchux-fzf-main-$$.sock"
+}
+
+get_submenu_cache_file() {
+    local name="$1"
+    echo "/tmp/nunchux-submenu-${name}.cache"
+}
+
+get_submenu_socket() {
+    local name="$1"
+    echo "/tmp/nunchux-fzf-submenu-${name}-$$.sock"
+}
+
 get_dirbrowse_cache_file() {
     local name="$1"
     echo "/tmp/nunchux-dirbrowse-${name}.cache"
@@ -329,7 +355,48 @@ is_cache_valid() {
     [[ $cache_age -lt $ttl ]]
 }
 
-# Refresh cache and hot-swap fzf content via socket
+# Refresh main menu cache and hot-swap via socket
+refresh_main_menu_cache() {
+    local socket="$1"
+    local cache_file
+    cache_file=$(get_main_menu_cache_file)
+
+    # Rebuild menu to temp file first
+    build_menu > "${cache_file}.new" 2>/dev/null
+    mv "${cache_file}.new" "$cache_file"
+
+    # Hot-swap via socket if fzf is still running
+    if [[ -S "$socket" ]]; then
+        curl --silent --unix-socket "$socket" "http://localhost" \
+            -d "reload(cat '$cache_file')" 2>/dev/null || true
+    fi
+}
+
+# Refresh submenu cache and hot-swap via socket
+refresh_submenu_cache() {
+    local submenu="$1"
+    local socket="$2"
+    local cache_file
+    cache_file=$(get_submenu_cache_file "$submenu")
+
+    # Temporarily set CURRENT_SUBMENU for build_menu
+    local saved_submenu="$CURRENT_SUBMENU"
+    CURRENT_SUBMENU="$submenu"
+
+    # Rebuild menu to temp file first
+    build_menu > "${cache_file}.new" 2>/dev/null
+    mv "${cache_file}.new" "$cache_file"
+
+    CURRENT_SUBMENU="$saved_submenu"
+
+    # Hot-swap via socket if fzf is still running
+    if [[ -S "$socket" ]]; then
+        curl --silent --unix-socket "$socket" "http://localhost" \
+            -d "reload(cat '$cache_file')" 2>/dev/null || true
+    fi
+}
+
+# Refresh dirbrowse cache and hot-swap fzf content via socket
 refresh_dirbrowse_cache() {
     local name="$1"
     local socket="$2"
@@ -735,10 +802,8 @@ launch_dirbrowse() {
         kill $refresh_pid 2>/dev/null || true
         rm -f "$socket" 2>/dev/null || true
     else
-        # No valid cache - build synchronously and save
-        build_dirbrowse_menu "$name" > "$cache_file"
-
-        selection=$(cat "$cache_file" | fzf \
+        # No valid cache - stream to fzf AND save to cache via tee
+        selection=$(build_dirbrowse_menu "$name" | tee "$cache_file" | fzf \
             --ansi \
             --delimiter='\t' \
             --with-nth=1 \
@@ -767,8 +832,9 @@ launch_dirbrowse() {
     file_path=$(echo "$selection" | cut -f2)
 
     if [[ -n "$file_path" && -f "$file_path" ]]; then
-        # Open in nvim popup
-        tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $name: $(basename "$file_path") ' -w $width -h $height 'nvim \"$file_path\"'"
+        # Open in editor popup
+        local editor="${VISUAL:-${EDITOR:-nvim}}"
+        tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $name: $(basename "$file_path") ' -w $width -h $height '$editor \"$file_path\"'"
         exit 0
     fi
 }
@@ -803,24 +869,116 @@ launch() {
         header="Enter: popup | Ctrl-O: window | Ctrl-X: kill | Esc: back"
     fi
 
-    # Run fzf with our menu
-    selection=$(build_menu | fzf \
-        --delimiter='\t' \
-        --with-nth=1 \
-        --header="$header" \
-        --header-first \
-        --prompt="$FZF_PROMPT" \
-        --pointer="$FZF_POINTER" \
-        --layout=reverse \
-        --height=100% \
-        --border="$FZF_BORDER" \
-        --border-label="$FZF_BORDER_LABEL" \
-        --border-label-pos=3 \
-        --no-preview \
-        --expect=ctrl-o \
-        --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
-        --color="$FZF_COLORS" \
-    ) || true
+    # Cache settings
+    local cache_file socket cache_ttl
+    cache_ttl="$MENU_CACHE_TTL"
+    cache_file=$(get_main_menu_cache_file)
+    socket=$(get_main_menu_socket)
+
+    # Use caching for main menu (not submenus - they're fast)
+    if [[ -z "$CURRENT_SUBMENU" ]] && is_cache_valid "$cache_file" "$cache_ttl"; then
+        # Cache is valid - load instantly and refresh in background
+        refresh_main_menu_cache "$socket" &
+        local refresh_pid=$!
+
+        selection=$(cat "$cache_file" | fzf \
+            --listen "$socket" \
+            --delimiter='\t' \
+            --with-nth=1 \
+            --header="$header" \
+            --header-first \
+            --prompt="$FZF_PROMPT" \
+            --pointer="$FZF_POINTER" \
+            --layout=reverse \
+            --height=100% \
+            --border="$FZF_BORDER" \
+            --border-label="$FZF_BORDER_LABEL" \
+            --border-label-pos=3 \
+            --no-preview \
+            --expect=ctrl-o \
+            --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
+            --color="$FZF_COLORS" \
+        ) || true
+
+        # Clean up background job
+        kill $refresh_pid 2>/dev/null || true
+        rm -f "$socket" 2>/dev/null || true
+    else
+        # No valid cache or in submenu - build fresh with streaming
+        if [[ -z "$CURRENT_SUBMENU" ]]; then
+            # Stream to fzf AND save to cache via tee
+            selection=$(build_menu | tee "$cache_file" | fzf \
+                --delimiter='\t' \
+                --with-nth=1 \
+                --header="$header" \
+                --header-first \
+                --prompt="$FZF_PROMPT" \
+                --pointer="$FZF_POINTER" \
+                --layout=reverse \
+                --height=100% \
+                --border="$FZF_BORDER" \
+                --border-label="$FZF_BORDER_LABEL" \
+                --border-label-pos=3 \
+                --no-preview \
+                --expect=ctrl-o \
+                --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
+                --color="$FZF_COLORS" \
+            ) || true
+        else
+            # Submenu - use submenu cache with per-submenu TTL
+            local submenu_cache submenu_socket submenu_ttl
+            submenu_cache=$(get_submenu_cache_file "$CURRENT_SUBMENU")
+            submenu_socket=$(get_submenu_socket "$CURRENT_SUBMENU")
+            submenu_ttl="${SUBMENU_CACHE_TTL[$CURRENT_SUBMENU]:-$MENU_CACHE_TTL}"
+
+            if is_cache_valid "$submenu_cache" "$submenu_ttl"; then
+                # Cache valid - load instantly and refresh in background
+                refresh_submenu_cache "$CURRENT_SUBMENU" "$submenu_socket" &
+                local submenu_refresh_pid=$!
+
+                selection=$(cat "$submenu_cache" | fzf \
+                    --listen "$submenu_socket" \
+                    --delimiter='\t' \
+                    --with-nth=1 \
+                    --header="$header" \
+                    --header-first \
+                    --prompt="$FZF_PROMPT" \
+                    --pointer="$FZF_POINTER" \
+                    --layout=reverse \
+                    --height=100% \
+                    --border="$FZF_BORDER" \
+                    --border-label="$FZF_BORDER_LABEL" \
+                    --border-label-pos=3 \
+                    --no-preview \
+                    --expect=ctrl-o \
+                    --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
+                    --color="$FZF_COLORS" \
+                ) || true
+
+                kill $submenu_refresh_pid 2>/dev/null || true
+                rm -f "$submenu_socket" 2>/dev/null || true
+            else
+                # No valid cache - stream to fzf AND save to cache via tee
+                selection=$(build_menu | tee "$submenu_cache" | fzf \
+                    --delimiter='\t' \
+                    --with-nth=1 \
+                    --header="$header" \
+                    --header-first \
+                    --prompt="$FZF_PROMPT" \
+                    --pointer="$FZF_POINTER" \
+                    --layout=reverse \
+                    --height=100% \
+                    --border="$FZF_BORDER" \
+                    --border-label="$FZF_BORDER_LABEL" \
+                    --border-label-pos=3 \
+                    --no-preview \
+                    --expect=ctrl-o \
+                    --bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)" \
+                    --color="$FZF_COLORS" \
+                ) || true
+            fi
+        fi
+    fi
 
     if [[ -z "$selection" ]]; then
         return 0
