@@ -66,6 +66,7 @@ declare -A DIRBROWSE_HEIGHT=()
 declare -A DIRBROWSE_GLOB=()
 declare -A DIRBROWSE_SORT=()
 declare -A DIRBROWSE_SORT_DIR=()
+declare -A DIRBROWSE_CACHE_TTL=()
 
 # Current submenu filter (empty = main menu)
 CURRENT_SUBMENU=""
@@ -79,7 +80,7 @@ parse_config() {
     local line key value
     local continued_value="" continued_key=""
     local app_cmd="" app_desc="" app_width="" app_height="" app_status="" app_status_script="" app_on_exit=""
-    local app_directory="" app_depth="" app_glob="" app_sort="" app_sort_direction=""
+    local app_directory="" app_depth="" app_glob="" app_sort="" app_sort_direction="" app_cache_ttl=""
 
     save_app() {
         if [[ -n "$current_section" && "$current_section" != "settings" ]]; then
@@ -92,6 +93,7 @@ parse_config() {
                 DIRBROWSE_GLOB["$current_section"]="${app_glob:-}"
                 DIRBROWSE_SORT["$current_section"]="${app_sort:-modified}"
                 DIRBROWSE_SORT_DIR["$current_section"]="${app_sort_direction:-descending}"
+                DIRBROWSE_CACHE_TTL["$current_section"]="${app_cache_ttl:-300}"
                 return
             fi
             # Check if this is submenu metadata (no cmd, no /)
@@ -147,7 +149,7 @@ parse_config() {
             save_app
             current_section="${BASH_REMATCH[1]}"
             app_cmd="" app_desc="" app_width="" app_height="" app_status="" app_status_script="" app_on_exit=""
-            app_directory="" app_depth="" app_glob="" app_sort="" app_sort_direction=""
+            app_directory="" app_depth="" app_glob="" app_sort="" app_sort_direction="" app_cache_ttl=""
             continue
         fi
 
@@ -196,6 +198,7 @@ parse_config() {
                     glob) app_glob="$value" ;;
                     sort) app_sort="$value" ;;
                     sort_direction) app_sort_direction="$value" ;;
+                    cache_ttl) app_cache_ttl="$value" ;;
                 esac
             fi
         fi
@@ -300,6 +303,47 @@ get_npm_scripts() {
         # Fallback without jq - basic grep approach
         grep -oP '(?<="scripts"\s*:\s*\{)[^}]*' "$dir/package.json" 2>/dev/null | \
             grep -oP '"[^"]+"\s*:' | tr -d '":' | tr -s ' ' '\n' || true
+    fi
+}
+
+# Cache helper functions for directory browser
+get_dirbrowse_cache_file() {
+    local name="$1"
+    echo "/tmp/nunchux-dirbrowse-${name}.cache"
+}
+
+get_dirbrowse_socket() {
+    local name="$1"
+    echo "/tmp/nunchux-fzf-${name}-$$.sock"
+}
+
+is_cache_valid() {
+    local cache_file="$1"
+    local ttl="${2:-300}"
+
+    # TTL of 0 means caching disabled
+    [[ "$ttl" == "0" ]] && return 1
+    [[ ! -f "$cache_file" ]] && return 1
+
+    local cache_age=$(( $(date +%s) - $(stat -c %Y "$cache_file" 2>/dev/null || echo 0) ))
+    [[ $cache_age -lt $ttl ]]
+}
+
+# Refresh cache and hot-swap fzf content via socket
+refresh_dirbrowse_cache() {
+    local name="$1"
+    local socket="$2"
+    local cache_file
+    cache_file=$(get_dirbrowse_cache_file "$name")
+
+    # Rebuild menu to temp file first
+    build_dirbrowse_menu "$name" > "${cache_file}.new" 2>/dev/null
+    mv "${cache_file}.new" "$cache_file"
+
+    # Hot-swap via socket if fzf is still running
+    if [[ -S "$socket" ]]; then
+        curl --silent --unix-socket "$socket" "http://localhost" \
+            -d "reload(cat '$cache_file')" 2>/dev/null || true
     fi
 }
 
@@ -653,29 +697,64 @@ launch_dirbrowse() {
     local name="$1"
     local width="${DIRBROWSE_WIDTH[$name]:-90}"
     local height="${DIRBROWSE_HEIGHT[$name]:-80}"
+    local cache_ttl="${DIRBROWSE_CACHE_TTL[$name]:-300}"
     [[ "$width" =~ ^[0-9]+$ ]] && width="${width}%"
     [[ "$height" =~ ^[0-9]+$ ]] && height="${height}%"
 
-    local script_path
-    script_path=$(realpath "$0")
+    local cache_file socket selection
+    cache_file=$(get_dirbrowse_cache_file "$name")
+    socket=$(get_dirbrowse_socket "$name")
 
-    local selection
-    selection=$(build_dirbrowse_menu "$name" | fzf \
-        --ansi \
-        --delimiter='\t' \
-        --with-nth=1 \
-        --header="Enter: edit | Esc: back" \
-        --header-first \
-        --prompt="$FZF_PROMPT" \
-        --pointer="$FZF_POINTER" \
-        --layout=reverse \
-        --height=100% \
-        --border="$FZF_BORDER" \
-        --border-label=" $name " \
-        --border-label-pos=3 \
-        --no-preview \
-        --color="$FZF_COLORS" \
-    ) || true
+    # Check if we have a valid cache
+    if is_cache_valid "$cache_file" "$cache_ttl"; then
+        # Cache is valid - load instantly and refresh in background
+        # Start background refresh (will hot-swap via socket when ready)
+        refresh_dirbrowse_cache "$name" "$socket" &
+        local refresh_pid=$!
+
+        # Run fzf with cached content and --listen for hot-swap
+        selection=$(cat "$cache_file" | fzf \
+            --listen "$socket" \
+            --ansi \
+            --delimiter='\t' \
+            --with-nth=1 \
+            --header="Enter: edit | Esc: back" \
+            --header-first \
+            --prompt="$FZF_PROMPT" \
+            --pointer="$FZF_POINTER" \
+            --layout=reverse \
+            --height=100% \
+            --border="$FZF_BORDER" \
+            --border-label=" $name " \
+            --border-label-pos=3 \
+            --no-preview \
+            --color="$FZF_COLORS" \
+        ) || true
+
+        # Clean up background job if still running
+        kill $refresh_pid 2>/dev/null || true
+        rm -f "$socket" 2>/dev/null || true
+    else
+        # No valid cache - build synchronously and save
+        build_dirbrowse_menu "$name" > "$cache_file"
+
+        selection=$(cat "$cache_file" | fzf \
+            --ansi \
+            --delimiter='\t' \
+            --with-nth=1 \
+            --header="Enter: edit | Esc: back" \
+            --header-first \
+            --prompt="$FZF_PROMPT" \
+            --pointer="$FZF_POINTER" \
+            --layout=reverse \
+            --height=100% \
+            --border="$FZF_BORDER" \
+            --border-label=" $name " \
+            --border-label-pos=3 \
+            --no-preview \
+            --color="$FZF_COLORS" \
+        ) || true
+    fi
 
     if [[ -z "$selection" ]]; then
         # Go back to main menu
