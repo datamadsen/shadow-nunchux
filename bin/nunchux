@@ -54,6 +54,9 @@ FZF_COLORS="fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:gree
 # Cache settings
 MENU_CACHE_TTL=60
 
+# Internal field separator for app specs (colons appear in commands)
+readonly APP_SEP=":::"
+
 # Easter egg: Chuck Norris programming facts
 CHUCK_FACTS=(
     "Chuck Norris can unit test entire applications with a single assert."
@@ -142,7 +145,7 @@ parse_config() {
             fi
             # Regular app entry
             [[ -z "$app_cmd" ]] && return
-            CHUCKS+=("$current_section:$app_cmd:$app_desc:$app_width:$app_height:$app_on_exit")
+            CHUCKS+=("${current_section}${APP_SEP}${app_cmd}${APP_SEP}${app_desc}${APP_SEP}${app_width}${APP_SEP}${app_height}${APP_SEP}${app_on_exit}")
             # Track submenu if section contains /
             if [[ "$current_section" == */* ]]; then
                 local submenu_name="${current_section%%/*}"
@@ -248,9 +251,9 @@ fi
 
 # Default apps if none configured
 if [[ ${#CHUCKS[@]} -eq 0 ]]; then
-    CHUCKS+=("btop:btop:System monitor::")
-    CHUCKS+=("lazygit:lazygit:Git TUI::")
-    CHUCKS+=("lazydocker:lazydocker:Docker TUI::")
+    CHUCKS+=("btop${APP_SEP}btop${APP_SEP}System monitor${APP_SEP}${APP_SEP}${APP_SEP}")
+    CHUCKS+=("lazygit${APP_SEP}lazygit${APP_SEP}Git TUI${APP_SEP}${APP_SEP}${APP_SEP}")
+    CHUCKS+=("lazydocker${APP_SEP}lazydocker${APP_SEP}Docker TUI${APP_SEP}${APP_SEP}${APP_SEP}")
 fi
 
 # Get apps from CHUCKS array
@@ -258,27 +261,22 @@ load_apps() {
     printf '%s\n' "${CHUCKS[@]}"
 }
 
-# Parse app spec (name:cmd:desc:width:height)
-get_app_name() { echo "${1%%:*}"; }
+# Parse app spec (name:::cmd:::desc:::width:::height:::on_exit)
+get_app_name() { echo "${1%%$APP_SEP*}"; }
 get_app_command() {
-    local rest="${1#*:}"
-    echo "${rest%%:*}"
+    echo "$1" | awk -F"$APP_SEP" '{print $2}'
 }
 get_app_description() {
-    local spec="$1"
-    echo "$spec" | cut -d: -f3
+    echo "$1" | awk -F"$APP_SEP" '{print $3}'
 }
 get_app_width() {
-    local spec="$1"
-    echo "$spec" | cut -d: -f4
+    echo "$1" | awk -F"$APP_SEP" '{print $4}'
 }
 get_app_height() {
-    local spec="$1"
-    echo "$spec" | cut -d: -f5
+    echo "$1" | awk -F"$APP_SEP" '{print $5}'
 }
 get_app_on_exit() {
-    local spec="$1"
-    echo "$spec" | cut -d: -f6
+    echo "$1" | awk -F"$APP_SEP" '{print $6}'
 }
 
 # Check if app is running (has a tmux window with that name)
