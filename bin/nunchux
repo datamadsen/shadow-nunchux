@@ -295,12 +295,10 @@ elif [[ -f "$NUNCHUX_RC_FALLBACK" ]]; then
     parse_config "$NUNCHUX_RC_FALLBACK"
 fi
 
-# Default apps if none configured
-if [[ ${#CHUCKS[@]} -eq 0 ]]; then
-    CHUCKS+=("btop${APP_SEP}btop${APP_SEP}System monitor${APP_SEP}${APP_SEP}${APP_SEP}")
-    CHUCKS+=("lazygit${APP_SEP}lazygit${APP_SEP}Git TUI${APP_SEP}${APP_SEP}${APP_SEP}")
-    CHUCKS+=("lazydocker${APP_SEP}lazydocker${APP_SEP}Docker TUI${APP_SEP}${APP_SEP}${APP_SEP}")
-fi
+# Check if any apps or directory browsers are configured
+has_config() {
+    [[ ${#CHUCKS[@]} -gt 0 || ${#DIRBROWSE_DIR[@]} -gt 0 ]]
+}
 
 # Get apps from CHUCKS array
 load_apps() {
@@ -428,6 +426,127 @@ NUNCHUX_EOF
 
     chmod +x "$script_file"
     tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -w $MENU_WIDTH -h $MENU_HEIGHT '$script_file'"
+    exit 0
+}
+
+# No config popup - offers to create initial config
+show_no_config_popup() {
+    local script_file="/tmp/nunchux-noconfig-$$"
+    local config_dir="$NUNCHUX_CONFIG_DIR"
+    local config_file="$NUNCHUX_RC_FILE"
+
+    cat > "$script_file" << 'NOCONFIG_EOF'
+#!/usr/bin/env bash
+CONFIG_DIR="$1"
+CONFIG_FILE="$2"
+
+center() {
+    local text="$1"
+    local width=$(tput cols)
+    local plain=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
+    local text_len=${#plain}
+    local padding=$(( (width - text_len) / 2 ))
+    [[ $padding -gt 0 ]] && printf "%*s" $padding ""
+    echo -e "$text"
+}
+
+show_menu() {
+    clear
+    height=$(tput lines)
+    top_padding=$(( (height - 16) / 2 ))
+    for ((i=0; i<top_padding; i++)); do echo; done
+
+    center "\033[1;36mNo config file found\033[0m"
+    echo ""
+    center "\033[90mCreate one to get started?\033[0m"
+    echo ""
+NOCONFIG_EOF
+
+    # Append the nunchucks art to the script
+    while IFS= read -r line; do
+        # Escape any special characters for the heredoc
+        printf '    center "%s"\n' "$line" >> "$script_file"
+    done <<< "$NUNCHUCKS_ART"
+
+    cat >> "$script_file" << 'NOCONFIG_EOF2'
+    echo ""
+    echo ""
+    center "\033[1;32m[Enter]\033[0m \033[90mCreate config at $CONFIG_FILE\033[0m"
+    center "\033[1;31m[Esc]\033[0m   \033[90mExit\033[0m"
+}
+
+create_config() {
+    mkdir -p "$CONFIG_DIR"
+    cat > "$CONFIG_FILE" << 'CONFIG'
+# Nunchux Configuration
+# Edit this file to customize your apps.
+
+[settings]
+popup_width = 90%
+popup_height = 90%
+
+[lazygit]
+cmd = lazygit
+status = n=$(git status -s 2>/dev/null | wc -l | tr -d ' '); [[ $n -gt 0 ]] && echo "($n changed)"
+
+[notes]
+cmd = f=$(nearest notes.md) && nvim "$f" || echo "No notes.md found"
+width = 80
+height = 60
+status = f=$(nearest notes.md) && echo "($(wc -l < "$f") lines)"
+
+# Submenu - items grouped under [parent/child]
+[system]
+status = echo "load: $(cut -d' ' -f1 /proc/loadavg)"
+
+[system/htop]
+cmd = htop
+desc = Process viewer
+
+[system/disk]
+cmd = ncdu ~
+desc = Disk usage analyzer
+
+# Directory browser - browse and edit config files
+[configs]
+directory = ~/.config
+depth = 2
+sort = modified-folder
+CONFIG
+}
+
+show_menu
+
+while true; do
+    read -rsn1 key
+    case "$key" in
+        $'\x1b')  # Escape
+            rm -f "$0"
+            exit 0
+            ;;
+        "")  # Enter
+            create_config
+            clear
+            height=$(tput lines)
+            top_padding=$(( (height - 8) / 2 ))
+            for ((i=0; i<top_padding; i++)); do echo; done
+            center "\033[1;32mConfig created!\033[0m"
+            echo ""
+            center "\033[90m$CONFIG_FILE\033[0m"
+            echo ""
+            center "\033[90mEdit it to add your apps, then run nunchux again.\033[0m"
+            echo ""
+            center "\033[90mpress any key\033[0m"
+            read -n 1 -s
+            rm -f "$0"
+            exit 0
+            ;;
+    esac
+done
+NOCONFIG_EOF2
+
+    chmod +x "$script_file"
+    tmux display-popup -E -b rounded -w "$MENU_WIDTH" -h "$MENU_HEIGHT" "$script_file" "$config_dir" "$config_file"
     exit 0
 }
 
@@ -1029,6 +1148,18 @@ launch() {
         exit 1
     fi
 
+    # No config? Offer to create one, or show message if config exists but is empty
+    if ! has_config; then
+        if [[ -f "$NUNCHUX_RC_FILE" || -f "$NUNCHUX_RC_FALLBACK" ]]; then
+            # Config exists but has no apps
+            echo "Config file exists but has no apps configured."
+            echo "Edit $NUNCHUX_RC_FILE to add your apps."
+            exit 0
+        else
+            show_no_config_popup
+        fi
+    fi
+
     local selection
     local script_path
     script_path=$(realpath "$0")
@@ -1165,25 +1296,7 @@ Configuration:
     Config file: $NUNCHUX_RC_FILE
     Fallback:    $NUNCHUX_RC_FALLBACK
 
-    Example config (INI format):
-        [settings]
-        icon_running = ●
-        icon_stopped = ○
-        popup_width = 90%
-        popup_height = 90%
-
-        [btop]
-        cmd = btop
-        desc = System monitor
-
-        [lazygit]
-        cmd = lazygit
-        width = 95
-        height = 95
-
-        [system/wifi]
-        cmd = impala
-        desc = WiFi manager
+    Run nunchux without a config to create one interactively.
 
 Controls:
     Enter           Open in popup
