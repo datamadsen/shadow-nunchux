@@ -1040,6 +1040,11 @@ launch() {
         exit 1
     fi
 
+    if ! command -v curl &>/dev/null; then
+        echo "Error: curl is required for menu hot-swap." >&2
+        exit 1
+    fi
+
     if [[ -z "${TMUX:-}" ]]; then
         echo "Error: Must be run inside tmux." >&2
         exit 1
