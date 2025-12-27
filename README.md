@@ -40,6 +40,9 @@ set -g @plugin 'datamadsen/nunchux'
 
 Then hit `prefix + I` and you're good to go.
 
+To update to the latest version, hit `prefix + U` and type `nunchux` (or `all`
+to update all plugins).
+
 ## How to invoke it
 
 By default the menu is invoked with `prefix + g`, but you can change it:
