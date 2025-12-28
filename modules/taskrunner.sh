@@ -205,19 +205,44 @@ taskrunner_launch() {
     local dir
     dir=$(get_current_dir)
 
-    # Wrap command to wait for keypress after completion
-    local wait_cmd='echo; echo "Press any key to close..."; read -n 1 -s'
+    # Build the command with status indicator and wait
+    # Use -t $TMUX_PANE to rename THIS window, not the active one
+    local full_cmd="$cmd"'
+exit_code=$?
+if [[ $exit_code -eq 0 ]]; then
+    tmux rename-window -t "$TMUX_PANE" "✓ '"$task_name"'"
+else
+    tmux rename-window -t "$TMUX_PANE" "✗ '"$task_name"'"
+fi
+echo
+echo "Press any key to close..."
+read -n 1 -s'
 
-    if [[ "$key" == "$SECONDARY_KEY" ]]; then
-        # Secondary action: open in window
-        tmux new-window -n "$task_name" -c "$dir" bash -c "$cmd; $wait_cmd"
+    # Check if window for this task already exists (ends with task_name)
+    local existing_window
+    existing_window=$(tmux list-windows -F '#{window_id} #{window_name}' | grep " $task_name$" | head -1 | cut -d' ' -f1)
+
+    # Remember current window for primary action
+    local current_window
+    current_window=$(tmux display-message -p '#{window_id}')
+
+    if [[ -n "$existing_window" ]]; then
+        # Reuse existing window - rename and respawn
+        tmux rename-window -t "$existing_window" "⏳ $task_name"
+        tmux respawn-window -k -t "$existing_window" -c "$dir" bash -c "$full_cmd"
+        if [[ "$key" == "$SECONDARY_KEY" ]]; then
+            tmux select-window -t "$existing_window"
+        else
+            # Stay in current window
+            tmux select-window -t "$current_window"
+        fi
     else
-        # Primary action: open in popup
-        # Use run-shell -b with sleep to close current popup first, then open new one
-        local width="${APP_POPUP_WIDTH}"
-        local height="${APP_POPUP_HEIGHT}"
-        tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $task_name ' -w '$width' -h '$height' -d '$dir' bash -c '$cmd; $wait_cmd'"
-        exit 0
+        # Create new window
+        if [[ "$key" == "$SECONDARY_KEY" ]]; then
+            tmux new-window -n "⏳ $task_name" -c "$dir" bash -c "$full_cmd"
+        else
+            tmux new-window -d -n "⏳ $task_name" -c "$dir" bash -c "$full_cmd"
+        fi
     fi
 
     return 0
