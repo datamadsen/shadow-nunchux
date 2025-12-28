@@ -160,7 +160,7 @@ app_launch() {
     # Check if this is one of our apps
     [[ -z "${APP_CMD[$name]:-}" ]] && return 1
 
-    if [[ "$key" == "ctrl-o" ]]; then
+    if [[ "$key" == "$SECONDARY_KEY" ]]; then
         # Open in window
         if is_app_running "$name"; then
             switch_to_app "$name"

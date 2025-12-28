@@ -22,6 +22,66 @@ APP_POPUP_WIDTH="${APP_POPUP_WIDTH:-90%}"
 APP_POPUP_HEIGHT="${APP_POPUP_HEIGHT:-90%}"
 MENU_CACHE_TTL="${MENU_CACHE_TTL:-60}"
 
+# Keybindings
+PRIMARY_KEY="${PRIMARY_KEY:-enter}"
+SECONDARY_KEY="${SECONDARY_KEY:-ctrl-o}"
+
+# Supported fzf keys (shift-enter and ctrl-enter are NOT supported by terminals)
+FZF_SUPPORTED_KEYS=(
+    # Basic keys
+    enter space tab esc backspace delete insert
+    up down left right home end
+    page-up page-down pgup pgdn
+    # Function keys
+    f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12
+    # Ctrl combinations
+    ctrl-a ctrl-b ctrl-c ctrl-d ctrl-e ctrl-f ctrl-g ctrl-h ctrl-i ctrl-j
+    ctrl-k ctrl-l ctrl-m ctrl-n ctrl-o ctrl-p ctrl-q ctrl-r ctrl-s ctrl-t
+    ctrl-u ctrl-v ctrl-w ctrl-x ctrl-y ctrl-z
+    ctrl-space ctrl-delete ctrl-backspace
+    # Alt combinations
+    alt-a alt-b alt-c alt-d alt-e alt-f alt-g alt-h alt-i alt-j
+    alt-k alt-l alt-m alt-n alt-o alt-p alt-q alt-r alt-s alt-t
+    alt-u alt-v alt-w alt-x alt-y alt-z
+    alt-enter alt-space alt-backspace alt-delete
+    alt-up alt-down alt-left alt-right alt-home alt-end
+    alt-page-up alt-page-down
+    # Shift combinations (limited - NO shift-enter!)
+    shift-tab shift-up shift-down shift-left shift-right
+    shift-home shift-end shift-delete shift-page-up shift-page-down
+    # Double-click
+    double-click
+)
+
+# Check if a key is supported by fzf
+is_valid_fzf_key() {
+    local key="$1"
+    local k
+    for k in "${FZF_SUPPORTED_KEYS[@]}"; do
+        [[ "$key" == "$k" ]] && return 0
+    done
+    return 1
+}
+
+# Validate keybindings and return error message if invalid
+validate_keybindings() {
+    local invalid_keys=()
+
+    if ! is_valid_fzf_key "$PRIMARY_KEY"; then
+        invalid_keys+=("primary_key: $PRIMARY_KEY")
+    fi
+
+    if ! is_valid_fzf_key "$SECONDARY_KEY"; then
+        invalid_keys+=("secondary_key: $SECONDARY_KEY")
+    fi
+
+    if [[ ${#invalid_keys[@]} -gt 0 ]]; then
+        echo "${invalid_keys[*]}"
+        return 1
+    fi
+    return 0
+}
+
 # Directory browser exclusion patterns
 EXCLUDE_PATTERNS="${EXCLUDE_PATTERNS:-.git, node_modules, Cache, cache, .cache, GPUCache, CachedData, blob_storage, Code Cache, Session Storage, Local Storage, IndexedDB, databases, *.db, *.db-*, *.sqlite*, *.log, *.png, *.jpg, *.jpeg, *.gif, *.ico, *.webp, *.woff*, *.ttf, *.lock, lock, *.pid}"
 
@@ -173,6 +233,8 @@ parse_config() {
                     fzf_colors) FZF_COLORS="$value" ;;
                     cache_ttl) MENU_CACHE_TTL="$value" ;;
                     exclude_patterns) EXCLUDE_PATTERNS="$value" ;;
+                    primary_key) PRIMARY_KEY="$value" ;;
+                    secondary_key) SECONDARY_KEY="$value" ;;
                 esac
             else
                 # Store in section_data for module handler

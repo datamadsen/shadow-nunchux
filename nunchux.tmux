@@ -32,9 +32,9 @@ main() {
     # Use -d to run in the current pane's directory
     # Pass parent pane ID via tmux environment so plugin commands can send keys to the right pane
     if [[ $key == *"-"* ]]; then
-        tmux bind-key -n "$key" run-shell "tmux set-environment NUNCHUX_PARENT_PANE '#{pane_id}'; tmux display-popup -E -B -d '#{pane_current_path}' -w '$width' -h '$height' '$NUNCHUX_CMD'"
+        tmux bind-key -n "$key" run-shell "tmux set-environment NUNCHUX_PARENT_PANE '#{pane_id}'; tmux display-popup -E -b rounded -T ' nunchux ' -d '#{pane_current_path}' -w '$width' -h '$height' '$NUNCHUX_CMD'"
     else
-        tmux bind-key "$key" run-shell "tmux set-environment NUNCHUX_PARENT_PANE '#{pane_id}'; tmux display-popup -E -B -d '#{pane_current_path}' -w '$width' -h '$height' '$NUNCHUX_CMD'"
+        tmux bind-key "$key" run-shell "tmux set-environment NUNCHUX_PARENT_PANE '#{pane_id}'; tmux display-popup -E -b rounded -T ' nunchux ' -d '#{pane_current_path}' -w '$width' -h '$height' '$NUNCHUX_CMD'"
     fi
 }
 

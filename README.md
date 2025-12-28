@@ -110,6 +110,7 @@ In `[settings]`:
 * `icon_running` / `icon_stopped` - status indicators
 * `menu_width` / `menu_height` - dimensions for the nunchux menu popup
 * `popup_width` / `popup_height` - default dimensions for app popups
+* `primary_key` / `secondary_key` - keybindings (default: enter/ctrl-o)
 * `fzf_*` - customize fzf appearance
 
 Per app (`[app:name]`):

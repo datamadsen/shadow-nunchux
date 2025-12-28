@@ -8,6 +8,8 @@ menu_height = 50%
 popup_width = 90%
 popup_height = 90%
 cache_ttl = 60
+primary_key = enter
+secondary_key = tab
 
 # Apps
 [app:lazygit]
@@ -51,3 +53,5 @@ icon = 📦
 [taskrunner:task]
 enabled = true
 icon = 📋
+
+# vim: ft=dosini

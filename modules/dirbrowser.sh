@@ -100,8 +100,8 @@ dirbrowser_launch() {
 
     local browser_name="${name#dirbrowser:}"
 
-    # Easter egg: ctrl-o on dirbrowser
-    if [[ "$key" == "ctrl-o" ]]; then
+    # Easter egg: secondary key on dirbrowser
+    if [[ "$key" == "$SECONDARY_KEY" ]]; then
         show_chuck_easter_egg
         return 0
     fi
@@ -249,7 +249,9 @@ launch_dirbrowse() {
 
     # Build fzf options
     local fzf_opts
-    build_fzf_opts fzf_opts "Enter: edit | Ctrl-O: window | Esc: back" " $name "
+    local primary_display="${PRIMARY_KEY^}"
+    local secondary_display="${SECONDARY_KEY^}"
+    build_fzf_opts fzf_opts "$primary_display: edit | $secondary_display: window | Esc: back"
     fzf_opts+=(--ansi)
 
     # Check if we have a valid cache
@@ -290,7 +292,7 @@ launch_dirbrowse() {
         local file_basename
         file_basename=$(basename "$file_path")
 
-        if [[ "$key" == "ctrl-o" ]]; then
+        if [[ "$key" == "$SECONDARY_KEY" ]]; then
             # Open in new tmux window
             local dir
             dir=$(dirname "$file_path")

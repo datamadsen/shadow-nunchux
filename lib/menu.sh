@@ -10,16 +10,15 @@ NUNCHUX_LIB_MENU_LOADED=1
 # FZF styling defaults (can be overridden in config)
 FZF_PROMPT="${FZF_PROMPT:- }"
 FZF_POINTER="${FZF_POINTER:-▶}"
-FZF_BORDER="${FZF_BORDER:-rounded}"
+FZF_BORDER="${FZF_BORDER:-none}"
 FZF_BORDER_LABEL="${FZF_BORDER_LABEL:- nunchux }"
 FZF_COLORS="${FZF_COLORS:-fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray}"
 
 # Build common fzf options array
-# Usage: build_fzf_opts opts_array "header text" "border label"
+# Usage: build_fzf_opts opts_array "header text"
 build_fzf_opts() {
     local -n opts=$1
     local header="$2"
-    local border_label="$3"
     opts=(
         --delimiter='\t'
         --with-nth=1
@@ -31,10 +30,8 @@ build_fzf_opts() {
         --layout=reverse
         --height=100%
         --border="$FZF_BORDER"
-        --border-label="$border_label"
-        --border-label-pos=3
         --no-preview
-        --expect=ctrl-o
+        --expect="$SECONDARY_KEY"
         --color="$FZF_COLORS"
     )
 }

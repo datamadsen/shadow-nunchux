@@ -56,6 +56,8 @@ The `[settings]` section controls global behavior:
 | `fzf_colors` | (see below) | fzf color scheme |
 | `cache_ttl` | `60` | Seconds before cache refresh (0 to disable) |
 | `exclude_patterns` | (see below) | Patterns to exclude from directory browsers |
+| `primary_key` | `enter` | Key for primary action (popup/edit) |
+| `secondary_key` | `ctrl-o` | Key for secondary action (window) |
 
 ### Default fzf_colors
 
