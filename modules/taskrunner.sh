@@ -213,9 +213,10 @@ taskrunner_launch() {
         tmux new-window -n "$task_name" -c "$dir" bash -c "$cmd; $wait_cmd"
     else
         # Primary action: open in popup
+        # Use run-shell -b with sleep to close current popup first, then open new one
         local width="${APP_POPUP_WIDTH}"
         local height="${APP_POPUP_HEIGHT}"
-        tmux display-popup -E -b rounded -T " $task_name " -w "$width" -h "$height" -d "$dir" bash -c "$cmd; $wait_cmd"
+        tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $task_name ' -w '$width' -h '$height' -d '$dir' bash -c '$cmd; $wait_cmd'"
         exit 0
     fi
 
