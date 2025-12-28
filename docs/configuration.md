@@ -1,8 +1,41 @@
 # Configuration
 
-Nunchux uses an INI-style configuration file.
+Nunchux uses an INI-style configuration file with typed sections.
 
-**Location:** `~/.config/nunchux/config` (fallback: `~/.nunchuxrc`)
+## Config Location
+
+Nunchux searches for config in this order:
+
+1. **Local `.nunchuxrc`** - searches upward from current directory (like `.gitignore`)
+2. **`NUNCHUX_RC_FILE`** - environment variable override
+3. **`~/.config/nunchux/config`** - user config
+
+This allows per-project configs. Place a `.nunchuxrc` in your project root to have
+project-specific apps and taskrunners appear when you're in that directory.
+
+## Config Format
+
+Sections use `[type:name]` syntax to declare their type explicitly:
+
+```ini
+[settings]
+popup_width = 90%
+
+[app:lazygit]
+cmd = lazygit
+
+[menu:system]
+desc = System tools
+
+[app:system/htop]
+cmd = htop
+
+[dirbrowser:configs]
+directory = ~/.config
+
+[taskrunner:just]
+enabled = true
+```
 
 ## Settings
 
@@ -16,10 +49,6 @@ The `[settings]` section controls global behavior:
 | `menu_height` | `50%` | Height of the app selector menu |
 | `popup_width` | `90%` | Default width for app popups |
 | `popup_height` | `90%` | Default height for app popups |
-| `plugin_enabled_just` | `true` | Show recipes from `justfile` |
-| `plugin_enabled_npm` | `true` | Show scripts from `package.json` |
-| `plugin_enabled_task` | `true` | Show tasks from `Taskfile.yml` |
-| `plugin_icon_*` | (plugin default) | Override icon for a specific plugin (e.g., `plugin_icon_just`) |
 | `fzf_prompt` | ` ` | Prompt shown in fzf |
 | `fzf_pointer` | `▶` | Pointer for selected item |
 | `fzf_border` | `rounded` | Border style (`rounded`, `sharp`, `double`, etc.) |
@@ -45,12 +74,28 @@ Code Cache, Session Storage, Local Storage, IndexedDB, databases, *.db, *.db-*,
 
 Patterns starting with `*` match filenames. Others exclude both directories and files with that name.
 
-## Apps
+## Ordering
 
-Each `[section]` defines an app:
+By default, items appear in the order they're defined in the config file. Use the `order` property to override this:
 
 ```ini
-[lazygit]
+[app:htop]
+order = 10
+
+[app:lazygit]
+order = 5    # Appears before htop despite being defined after
+```
+
+Lower values appear first. Items without `order` are sorted by config file position (after items with explicit orders).
+
+The `order` property is available on all section types: apps, menus, dirbrowsers, and taskrunners.
+
+## Apps
+
+Use `[app:name]` to define an app:
+
+```ini
+[app:lazygit]
 cmd = lazygit
 desc = Git TUI
 width = 95
@@ -68,6 +113,7 @@ on_exit = echo "done"
 | `status` | No | Shell command for dynamic status text |
 | `status_script` | No | Path to script for complex status |
 | `on_exit` | No | Command to run after app exits |
+| `order` | No | Explicit sort order (lower = first) |
 
 ### Variables in cmd and on_exit
 
@@ -79,34 +125,36 @@ on_exit = echo "done"
 
 ## Submenus
 
-Use `[parent/child]` naming to create submenus:
+Use `[menu:name]` for the parent menu and `[app:parent/child]` for children:
 
 ```ini
-[system]
+[menu:system]
+desc = System tools
 status = echo "load: $(cut -d' ' -f1 /proc/loadavg)"
 
-[system/htop]
+[app:system/htop]
 cmd = htop
 desc = Process viewer
 
-[system/ncdu]
+[app:system/ncdu]
 cmd = ncdu
 desc = Disk usage
 ```
 
-The parent `[system]` appears in the main menu. Selecting it opens a submenu with its children.
+The `[menu:system]` appears in the main menu. Selecting it opens a submenu with its children.
 
-Parent sections support:
+Menu sections support:
 - `status` - Dynamic status text
 - `desc` - Description
 - `cache_ttl` - Override cache duration for this submenu
+- `order` - Explicit sort order (lower = first)
 
 ## Directory Browsers
 
-Use `directory` instead of `cmd` to create a file browser:
+Use `[dirbrowser:name]` to create a file browser:
 
 ```ini
-[configs]
+[dirbrowser:configs]
 directory = ~/.config
 depth = 2
 sort = modified-folder
@@ -127,6 +175,7 @@ height = 80
 | `cache_ttl` | `300` | Cache duration in seconds |
 | `width` | `90` | Popup width |
 | `height` | `80` | Popup height |
+| `order` | (none) | Explicit sort order (lower = first) |
 
 ### Sort Modes
 
@@ -137,3 +186,39 @@ height = 80
 | `alphabetical` | Sorted by folder/filename |
 
 Selected files open in `$VISUAL`, `$EDITOR`, or `nvim` (first available).
+
+## Task Runners
+
+Use `[taskrunner:name]` to enable task runners for project automation:
+
+```ini
+[taskrunner:just]
+enabled = true
+icon = 🤖
+
+[taskrunner:npm]
+enabled = true
+icon = 📦
+
+[taskrunner:task]
+enabled = false
+```
+
+Task runners are **disabled by default** and must be explicitly enabled.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `enabled` | `false` | Whether to show this task runner |
+| `icon` | (runner default) | Icon shown in divider line |
+| `label` | (runner name) | Label shown in menu |
+| `order` | (none) | Explicit sort order (lower = first) |
+
+### Available Task Runners
+
+| Name | Description | Detection |
+|------|-------------|-----------|
+| `just` | [just](https://github.com/casey/just) command runner | `justfile` in current directory |
+| `npm` | npm scripts | `package.json` with scripts |
+| `task` | [Task](https://taskfile.dev) runner | `Taskfile.yml` in current directory |
+
+Task runner commands are sent to the parent pane (the terminal that launched nunchux).

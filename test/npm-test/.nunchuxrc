@@ -1,0 +1,8 @@
+# Test config for npm taskrunner only
+
+[settings]
+menu_width = 60%
+menu_height = 50%
+
+[taskrunner:npm]
+enabled = true

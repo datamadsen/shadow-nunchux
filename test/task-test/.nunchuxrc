@@ -1,0 +1,8 @@
+# Test config for task taskrunner only
+
+[settings]
+menu_width = 60%
+menu_height = 50%
+
+[taskrunner:task]
+enabled = true

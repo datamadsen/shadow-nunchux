@@ -1,7 +1,15 @@
 # Nunchux Configuration
 #
-# Copy to: ~/.config/nunchux/config
-# Fallback: ~/.nunchuxrc
+# Config locations (searched in order):
+#   1. .nunchuxrc in current dir (or any parent, like .gitignore)
+#   2. NUNCHUX_RC_FILE environment variable
+#   3. ~/.config/nunchux/config
+#
+# Config uses [type:name] section format:
+#   [app:name]        - Regular apps
+#   [menu:name]       - Submenus
+#   [dirbrowser:name] - Directory browsers
+#   [taskrunner:name] - Task runner integrations
 
 [settings]
 icon_running = ●
@@ -10,14 +18,6 @@ menu_width = 60%
 menu_height = 50%
 popup_width = 90%
 popup_height = 90%
-# Plugin toggles (all default to true)
-plugin_enabled_just = true
-plugin_enabled_npm = true
-plugin_enabled_task = true
-# Override plugin icons (optional)
-# plugin_icon_just =
-# plugin_icon_npm =
-# plugin_icon_task = 󰟓
 fzf_prompt =
 fzf_pointer = ▶
 fzf_border = rounded
@@ -36,8 +36,8 @@ cache_ttl = 60
 # nice streaming effect where items appear one by one).
 #
 # - In [settings]: sets the default for main menu and all submenus (default: 60)
-# - In a submenu like [system]: overrides just that submenu
-# - In a directory browser: controls that browser (default: 300 for dir browsers)
+# - In a [menu:name] section: overrides just that submenu
+# - In a [dirbrowser:name]: controls that browser (default: 300 for dir browsers)
 #
 # Set to 0 to disable caching entirely for that menu.
 
@@ -52,8 +52,24 @@ cache_ttl = 60
 #
 # Example: exclude_patterns = .git, node_modules, *.log, *.tmp, build
 
+# Ordering
+# --------
+# By default, items appear in the menu in the order they're defined in this
+# config file. You can override this with the 'order' property on any item.
+#
+# Lower order values appear first. Items without an explicit order are sorted
+# by their position in the config file (after items with explicit orders).
+#
+# Example:
+#   [app:htop]
+#   order = 10
+#
+#   [app:lazygit]
+#   order = 5    # This will appear before htop despite being defined after
+
 # Apps
-# Each section defines an app. The section name becomes the window name.
+# ----
+# Use [app:name] sections. The name becomes the window name.
 #
 # Available options:
 #   cmd           = command to run (required)
@@ -63,67 +79,52 @@ cache_ttl = 60
 #   status        = shell command for dynamic status
 #   status_script = path to script for complex status
 #   on_exit       = command to run after app exits
+#   order         = explicit sort order (lower = first)
 #
 # Variables available in cmd and on_exit:
 #   {pane_id}     = parent tmux pane ID
 #   {tmp}         = fresh temp file path
 #   {dir}         = starting directory
-#
-# Submenus:
-#   Use [parent/child] section names to create submenus.
-#   The parent appears in the main menu; selecting it opens the submenu.
 
-[btop]
+[app:btop]
 cmd = btop
 status = load=$(cut -d' ' -f1 /proc/loadavg); \
          ram=$(awk '/MemAvailable/{printf "%.0f", $2/1024/1024}' /proc/meminfo); \
          disk=$(df /home --output=avail 2>/dev/null | tail -1 | awk '{printf "%.0f", $1/1024/1024}'); \
          echo "load: $load | ram: ${ram}GB free | /home: ${disk}GB free"
 
-[htop]
+[app:htop]
 cmd = htop
 desc = Process viewer
 
-[git]
+[app:git]
 cmd = lazygit
 status = n=$(git status -s 2>/dev/null | wc -l | tr -d ' '); [[ $n -gt 0 ]] && echo "($n changed)"
 
-[docker]
+[app:docker]
 cmd = lazydocker
 status = n=$(docker ps -q 2>/dev/null | wc -l | tr -d ' '); [[ $n -gt 0 ]] && echo "($n running)"
 
-# [k9s]
+# [app:k9s]
 # cmd = k9s
 # status = ctx=$(kubectl config current-context 2>/dev/null); [[ -n "$ctx" ]] && echo "($ctx)"
 
-# [files]
-# # yazi doesn't work directly in tmux popups due to terminal passthrough issues.
-# # Workaround: wrap in nvim terminal. See https://github.com/sxyazi/yazi/issues/2308
-# cmd = nvim --clean -c 'set laststatus=0 cmdheight=0 noshowmode noruler signcolumn=no nonumber' -c 'terminal yazi --cwd-file={tmp}' -c 'startinsert' -c 'autocmd TermClose * qa!'
-# desc = File manager
-# # Only cd if pane is at a shell prompt (not in vim, etc.)
-# on_exit = cwd=$(cat {tmp} 2>/dev/null); \
-#   if [[ -d "$cwd" ]]; then \
-#     cmd=$(tmux display-message -t {pane_id} -p '#{pane_current_command}'); \
-#     [[ "$cmd" =~ ^(bash|zsh|fish|sh)$ ]] && tmux send-keys -t {pane_id} "cd \"$cwd\"" Enter; \
-#   fi; \
-#   rm -f {tmp}
-
-# [notes]
+# [app:notes]
 # cmd = nvim ~/notes
 # width = 80
 # height = 60
 # status = mins=$(( ($(date +%s) - $(stat -c %Y ~/notes 2>/dev/null || echo 0)) / 60 )); [[ $mins -lt 60 ]] && echo "(${mins}m ago)" || echo "($(($mins/60))h ago)"
 
-# [todos]
-# cmd = nvim ~/todos.md
-# width = 70
-# height = 50
-# status = n=$(wc -l < ~/todos.md 2>/dev/null || echo 0); echo "($n lines)"
-
-# System submenu example
-# Submenus use [parent/child] naming. The parent shows in the main menu,
-# selecting it opens the submenu with all its children.
+# Submenus
+# --------
+# Use [menu:name] for the parent and [app:name/child] for children.
+# The parent shows in the main menu; selecting it opens the submenu.
+#
+# Available options:
+#   desc      = description shown in menu
+#   status    = shell command for dynamic status
+#   cache_ttl = cache duration for submenu
+#   order     = explicit sort order (lower = first)
 #
 # Prerequisites for this example:
 #   btop       - System monitor          (https://github.com/aristocratos/btop)
@@ -132,46 +133,45 @@ status = n=$(docker ps -q 2>/dev/null | wc -l | tr -d ' '); [[ $n -gt 0 ]] && ec
 #   bandwhich  - Bandwidth by process    (https://github.com/imsnif/bandwhich)
 #   duf        - Disk usage overview     (https://github.com/muesli/duf)
 #   ncdu       - Disk usage analyzer     (https://dev.yorhel.nl/ncdu)
-#
-# The [system] section (without /child) defines the submenu's status line.
 
-# [system]
+# [menu:system]
 # status = load=$(cut -d' ' -f1 /proc/loadavg); \
 #          ram=$(awk '/MemAvailable/{printf "%.0f", $2/1024/1024}' /proc/meminfo); \
 #          echo "load: $load | ${ram}GB free"
 #
-# [system/btop]
+# [app:system/btop]
 # cmd = btop
 # desc = Task manager
 #
-# [system/impala]
+# [app:system/impala]
 # cmd = impala
 # desc = WiFi manager
 #
-# [system/bluetuith]
+# [app:system/bluetuith]
 # cmd = bluetuith
 # desc = Bluetooth manager
 #
-# [system/bandwhich]
+# [app:system/bandwhich]
 # cmd = sudo bandwhich
 # desc = Bandwidth by process
 #
-# [system/duf]
+# [app:system/duf]
 # cmd = duf -only local | less -R
 # desc = Disk usage overview
 # width = 60
 # height = 30
 #
-# [system/ncdu]
+# [app:system/ncdu]
 # cmd = ncdu
 # desc = Disk usage analyzer
 
-# Directory browser
-# Instead of cmd, use "directory" to create a file browser.
+# Directory browsers
+# ------------------
+# Use [dirbrowser:name] instead of [app:name] with a cmd.
 # Selected files open in $VISUAL, $EDITOR, or nvim (in that order).
 #
 # Available options:
-#   directory      = path to browse (required, replaces cmd)
+#   directory      = path to browse (required)
 #   depth          = how many levels deep to search (default: 1)
 #   sort           = sorting mode: "modified", "modified-folder", or "alphabetical"
 #   sort_direction = "ascending" or "descending" (default: descending)
@@ -179,14 +179,44 @@ status = n=$(docker ps -q 2>/dev/null | wc -l | tr -d ' '); [[ $n -gt 0 ]] && ec
 #   glob           = filter files by pattern (e.g., "*.conf")
 #   width          = popup width
 #   height         = popup height
+#   order          = explicit sort order (lower = first)
 #
 # Sort modes:
 #   modified        = newest files first
 #   modified-folder = folders grouped by most recent file, then files by recency
 #   alphabetical    = sorted by folder/filename
 
-# [configs]
+# [dirbrowser:configs]
 # directory = ~/.config
 # depth = 2
 # sort = modified-folder
 # cache_ttl = 300
+
+# Task runners
+# ------------
+# Use [taskrunner:name] to enable task runner integrations.
+# Task runners are DISABLED by default - you must explicitly enable them.
+# Commands are sent to the parent pane (where you launched nunchux).
+#
+# Available options:
+#   enabled = true/false (default: false)
+#   icon    = emoji icon shown in divider
+#   label   = custom label (default: runner name)
+#   order   = explicit sort order (lower = first)
+#
+# Available runners:
+#   just - shows recipes from justfile
+#   npm  - shows scripts from package.json
+#   task - shows tasks from Taskfile.yml
+
+# [taskrunner:just]
+# enabled = true
+# icon = 🤖
+#
+# [taskrunner:npm]
+# enabled = true
+# icon = 📦
+#
+# [taskrunner:task]
+# enabled = true
+# icon = ✓

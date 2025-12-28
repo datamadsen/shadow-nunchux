@@ -21,6 +21,7 @@ relevant tool is available and show tasks right in the menu. Select one and it
 runs in your current pane.
 
 Built-in plugins:
+
 * **just** - Justfile recipes (requires [just](https://github.com/casey/just))
 * **npm** - package.json scripts (requires npm)
 * **task** - Taskfile tasks (requires [task](https://taskfile.dev/) or go-task)
@@ -59,7 +60,11 @@ set -g @nunchux-key 'C-Space'
 
 ## Configuring your apps
 
-Create a config file at `~/.config/nunchux/config` (or `~/.nunchuxrc`).
+Nunchux searches for config in this order:
+1. `.nunchuxrc` in current directory (or any parent, like `.gitignore`)
+2. `NUNCHUX_RC_FILE` environment variable
+3. `~/.config/nunchux/config`
+
 Or just run `nunchux` without a config and it will offer to create one for you.
 
 See [docs/configuration.md](docs/configuration.md) for the full reference and
@@ -73,38 +78,42 @@ menu_width = 60%
 menu_height = 50%
 popup_width = 90%
 popup_height = 90%
-plugin_enabled_just = true
-plugin_enabled_npm = true
-plugin_enabled_task = true
 
-[btop]
+[app:btop]
 cmd = btop
 status = load=$(cut -d' ' -f1 /proc/loadavg); echo "load: $load"
 
-[git]
+[app:git]
 cmd = lazygit
 status = n=$(git status -s 2>/dev/null | wc -l); [[ $n -gt 0 ]] && echo "($n changed)"
 
-[docker]
+[app:docker]
 cmd = lazydocker
 status = n=$(docker ps -q 2>/dev/null | wc -l); [[ $n -gt 0 ]] && echo "($n running)"
 
-[notes]
+[app:notes]
 cmd = nvim ~/notes
 width = 80
 height = 60
+
+[taskrunner:just]
+enabled = true
+
+[taskrunner:npm]
+enabled = true
 ```
 
 ### Available options
 
 In `[settings]`:
+
 * `icon_running` / `icon_stopped` - status indicators
 * `menu_width` / `menu_height` - dimensions for the nunchux menu popup
 * `popup_width` / `popup_height` - default dimensions for app popups
-* `plugin_enabled_*` - toggle plugin integrations (just, npm, task)
 * `fzf_*` - customize fzf appearance
 
-Per app:
+Per app (`[app:name]`):
+
 * `cmd` - command to run (required)
 * `desc` - description shown in menu
 * `width` / `height` - popup dimensions for this app
@@ -148,8 +157,11 @@ status = f=$(nearest notes.md) && echo "($(lines "$f"), $(ago "$f"))"
 ## Dependencies
 
 * tmux (duh)
-* fzf
+* fzf v0.45+
 * curl (for menu hot-swap)
-* jq (optional, for npm/task plugins)
-* just (optional, for justfile plugin)
-* task or go-task (optional, for Taskfile plugin - named go-task on some systems to avoid conflict with [Taskwarrior](https://taskwarrior.org/))
+
+### Optional dependencies
+
+* jq (for npm/task runner)
+* just (for justfile runner)
+* task or go-task (for Taskfile runner)
