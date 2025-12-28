@@ -489,7 +489,8 @@ main() {
     case "${1:-}" in
         --kill)
             shift
-            kill_app "$1"
+            # Try app first, then taskrunner
+            kill_app "$1" 2>/dev/null || taskrunner_kill "$1" 2>/dev/null || true
             ;;
         --menu)
             if [[ "${2:-}" == "--submenu" ]]; then

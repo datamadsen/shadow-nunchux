@@ -288,12 +288,14 @@ NUNCHUX_EOF
 }
 
 # Kill a running app window
+# Returns 0 if killed, 1 if not found
 kill_app() {
     local name="$1"
     if is_app_running "$name"; then
         tmux kill-window -t "$name" 2>/dev/null
-        echo "Killed: $name"
+        return 0
     fi
+    return 1
 }
 
 # Check if we have any apps configured

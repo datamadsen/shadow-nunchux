@@ -248,6 +248,32 @@ read -n 1 -s'
     return 0
 }
 
+# Kill a taskrunner window by name (format: runner:task)
+# Returns 0 if killed, 1 if not found or not a taskrunner
+taskrunner_kill() {
+    local name="$1"
+
+    # Check if this looks like a taskrunner item (format: runner:task)
+    [[ "$name" != *:* ]] && return 1
+
+    local runner="${name%%:*}"
+    local task="${name#*:}"
+
+    # Window name format: "icon runner: task" - we match on "runner: task" suffix
+    local task_name="$runner: $task"
+
+    # Find window ending with this task name (could have any status icon prefix)
+    local window_id
+    window_id=$(tmux list-windows -F '#{window_id} #{window_name}' 2>/dev/null | grep -F " $task_name" | head -1 | cut -d' ' -f1)
+
+    if [[ -n "$window_id" ]]; then
+        tmux kill-window -t "$window_id" 2>/dev/null
+        return 0
+    fi
+
+    return 1
+}
+
 # Check if we have any taskrunners loaded
 taskrunner_has_items() {
     [[ ${#LOADED_TASKRUNNERS[@]} -gt 0 ]]
