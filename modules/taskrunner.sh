@@ -198,8 +198,10 @@ taskrunner_launch() {
 
     $is_runner || return 1
 
-    # Get task name for window/popup title
-    local task_name="${name#*:}"
+    # Get task name for window/popup title (e.g., "just: hello")
+    local runner="${name%%:*}"
+    local task="${name#*:}"
+    local task_name="$runner: $task"
     local dir
     dir=$(get_current_dir)
 
