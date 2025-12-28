@@ -157,7 +157,7 @@ status = f=$(nearest notes.md) && echo "($(lines "$f"), $(ago "$f"))"
 ## Dependencies
 
 * tmux (duh)
-* fzf v0.45+
+* fzf v0.66+
 * curl (for menu hot-swap)
 
 ### Optional dependencies

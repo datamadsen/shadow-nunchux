@@ -45,7 +45,7 @@ format_ago() {
 }
 
 # Minimum required fzf version (for unix socket support)
-FZF_MIN_VERSION="0.45"
+FZF_MIN_VERSION="0.66"
 
 # Check fzf version meets minimum requirement
 # Caches result based on fzf binary mtime to avoid repeated checks
@@ -75,8 +75,8 @@ check_fzf_version() {
     minor="${version#*.}"
     minor="${minor%%.*}"
 
-    # Check if >= 0.45
-    if [[ "$major" -gt 0 ]] || [[ "$major" -eq 0 && "$minor" -ge 45 ]]; then
+    # Check if >= 0.66
+    if [[ "$major" -gt 0 ]] || [[ "$major" -eq 0 && "$minor" -ge 66 ]]; then
         echo "$fzf_mtime" > "$cache_file"
         return 0
     fi

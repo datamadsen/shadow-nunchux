@@ -35,19 +35,19 @@ load test_helper
     [[ "$status" -eq 0 ]]
 }
 
-@test "fzf: FZF_MIN_VERSION is set to 0.45" {
-    [[ "$FZF_MIN_VERSION" == "0.45" ]]
+@test "fzf: FZF_MIN_VERSION is set to 0.66" {
+    [[ "$FZF_MIN_VERSION" == "0.66" ]]
 }
 
-@test "fzf: current fzf version is 0.45+" {
+@test "fzf: current fzf version is 0.66+" {
     local version major minor
     version=$(fzf --version 2>/dev/null | head -1 | grep -oE '^[0-9]+\.[0-9]+' || echo "0.0")
     major="${version%%.*}"
     minor="${version#*.}"
     minor="${minor%%.*}"
 
-    # Should be >= 0.45
-    [[ "$major" -gt 0 ]] || [[ "$major" -eq 0 && "$minor" -ge 45 ]]
+    # Should be >= 0.66
+    [[ "$major" -gt 0 ]] || [[ "$major" -eq 0 && "$minor" -ge 66 ]]
 }
 
 @test "fzf: check_fzf_version fails with old fzf (mocked)" {
