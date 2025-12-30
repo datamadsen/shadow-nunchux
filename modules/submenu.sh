@@ -110,7 +110,7 @@ menu_launch() {
 
   # Enter the submenu
   CURRENT_MENU="$menu_name"
-  FZF_BORDER_LABEL=" $menu_name "
+  FZF_BORDER_LABEL=" $NUNCHUX_LABEL: $menu_name "
 
   return 0
 }

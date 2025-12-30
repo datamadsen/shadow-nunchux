@@ -11,8 +11,11 @@ NUNCHUX_LIB_MENU_LOADED=1
 FZF_PROMPT="${FZF_PROMPT:- }"
 FZF_POINTER="${FZF_POINTER:-▶}"
 FZF_BORDER="${FZF_BORDER:-none}"
-FZF_BORDER_LABEL="${FZF_BORDER_LABEL:- nunchux }"
 FZF_COLORS="${FZF_COLORS:-fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray}"
+
+# Label used in borders and popup titles (can be overridden in config)
+NUNCHUX_LABEL="${NUNCHUX_LABEL:-nunchux}"
+FZF_BORDER_LABEL=" $NUNCHUX_LABEL "
 
 # Build common fzf options array
 # Usage: build_fzf_opts opts_array "header text"
@@ -30,6 +33,8 @@ build_fzf_opts() {
     --layout=reverse
     --height=100%
     --border="$FZF_BORDER"
+    --border-label="$FZF_BORDER_LABEL"
+    --border-label-pos=3
     --no-preview
     --expect="$SECONDARY_KEY"
     --color="$FZF_COLORS"

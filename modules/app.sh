@@ -180,8 +180,14 @@ app_launch() {
     return 0
   fi
 
+  # Format display name for popup (e.g., "system/btop" -> "system | btop")
+  local display_name="$name"
+  if [[ "$name" == */* ]]; then
+    display_name="${name%%/*} | ${name#*/}"
+  fi
+
   # Launch via centralized launcher - it handles action-specific behavior
-  nunchux_launch --type app --action "$action" --name "$name" --cmd "$cmd" \
+  nunchux_launch --type app --action "$action" --name "$display_name" --cmd "$cmd" \
     --width "$width" --height "$height" --on-exit "$on_exit"
 
   return 0

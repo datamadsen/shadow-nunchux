@@ -573,7 +573,7 @@ main() {
   --submenu)
     shift
     CURRENT_MENU="$1"
-    FZF_BORDER_LABEL=" $CURRENT_MENU "
+    FZF_BORDER_LABEL=" $NUNCHUX_LABEL: $CURRENT_MENU "
     if ! launch 2>&1; then
       echo "Press any key to close..."
       read -n 1

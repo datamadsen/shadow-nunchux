@@ -221,7 +221,8 @@ NUNCHUX_EOF
   fi
 
   chmod +x "$script"
-  tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $name ' -w '$width' -h '$height' '$script'"
+  local title=" $NUNCHUX_LABEL: $name "
+  tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T '$title' -w '$width' -h '$height' '$script'"
 }
 
 # Detect if we're being sourced or executed

@@ -239,7 +239,7 @@ parse_config() {
         fzf_prompt) FZF_PROMPT="$value" ;;
         fzf_pointer) FZF_POINTER="$value" ;;
         fzf_border) FZF_BORDER="$value" ;;
-        fzf_border_label) FZF_BORDER_LABEL="$value" ;;
+        label) NUNCHUX_LABEL="$value" ;;
         fzf_colors) FZF_COLORS="$value" ;;
         cache_ttl) MENU_CACHE_TTL="$value" ;;
         exclude_patterns) EXCLUDE_PATTERNS="$value" ;;

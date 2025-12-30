@@ -331,7 +331,8 @@ rm -f "$script_file"
 NUNCHUX_EOF
   chmod +x "$script_file"
 
-  tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $task_name ' -w '$APP_POPUP_WIDTH' -h '$APP_POPUP_HEIGHT' '$script_file'"
+  local title=" $NUNCHUX_LABEL: $task_name "
+  tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T '$title' -w '$APP_POPUP_WIDTH' -h '$APP_POPUP_HEIGHT' '$script_file'"
   exit 0
 }
 

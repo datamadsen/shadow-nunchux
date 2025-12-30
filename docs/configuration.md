@@ -56,7 +56,7 @@ The `[settings]` section controls global behavior:
 | `fzf_prompt` | ` ` | Prompt shown in fzf |
 | `fzf_pointer` | `▶` | Pointer for selected item |
 | `fzf_border` | `rounded` | Border style (`rounded`, `sharp`, `double`, etc.) |
-| `fzf_border_label` | ` nunchux ` | Label shown in border |
+| `label` | `nunchux` | Label shown in borders and popup titles |
 | `fzf_colors` | (see below) | fzf color scheme |
 | `cache_ttl` | `60` | Seconds before cache refresh (0 to disable) |
 | `exclude_patterns` | (see below) | Patterns to exclude from directory browsers |

@@ -245,6 +245,9 @@ launch_dirbrowse() {
   cache_file=$(cache_file "dirbrowser" "$name")
   socket=$(cache_socket "dirbrowser" "$name")
 
+  # Set border label for dirbrowser (e.g., "nunchux: configs")
+  FZF_BORDER_LABEL=" $NUNCHUX_LABEL: $name "
+
   # Build fzf options
   local fzf_opts
   local primary_display="${PRIMARY_KEY^}"
@@ -292,6 +295,10 @@ launch_dirbrowse() {
     local dir
     dir=$(dirname "$file_path")
 
+    # Extract display text from menu - just the path after the │
+    local display_text
+    display_text=$(echo "$selected_line" | cut -f1 | sed 's/.*│ //')
+
     # Determine action based on key pressed
     local action
     if [[ "$key" == "$SECONDARY_KEY" ]]; then
@@ -304,9 +311,9 @@ launch_dirbrowse() {
     local cmd
     printf -v cmd '%q %q' "$editor" "$file_path"
 
-    # Determine window name based on action
+    # Use display text for popup (e.g., "config | folder/file"), basename for windows
     local window_name="$file_basename"
-    [[ "$action" == "popup" ]] && window_name="$name: $file_basename"
+    [[ "$action" == "popup" ]] && window_name="$name | $display_text"
 
     # Launch via centralized launcher
     nunchux_launch \
