@@ -26,6 +26,9 @@ source "$NUNCHUX_LIB_DIR/menu.sh"
 source "$NUNCHUX_LIB_DIR/config.sh"
 source "$NUNCHUX_LIB_DIR/migrate.sh"
 
+# Load nunchux-run for nunchux_launch function
+source "$NUNCHUX_BIN_DIR/nunchux-run"
+
 # Module registry (declare -g for global scope)
 declare -ga LOADED_MODULES=()
 declare -gA MODULE_HANDLERS=()

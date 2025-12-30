@@ -19,7 +19,13 @@ NUNCHUX_MOD_TASKRUNNER_LOADED=1
 declare -gA TASKRUNNER_ENABLED=()
 declare -gA TASKRUNNER_ICON=()
 declare -gA TASKRUNNER_LABEL=()
+declare -gA TASKRUNNER_PRIMARY_ACTION=()   # Per-taskrunner primary action override
+declare -gA TASKRUNNER_SECONDARY_ACTION=() # Per-taskrunner secondary action override
 declare -ga TASKRUNNER_ORDER=()
+
+# Taskrunner-specific defaults (different from global app defaults)
+TASKRUNNER_DEFAULT_PRIMARY_ACTION="window"
+TASKRUNNER_DEFAULT_SECONDARY_ACTION="background_window"
 
 # Helper to safely get taskrunner enabled status
 _taskrunner_is_enabled() {
@@ -57,6 +63,8 @@ taskrunner_parse_section() {
   TASKRUNNER_ENABLED["$name"]="${section_data[enabled]:-false}"
   TASKRUNNER_ICON["$name"]="${section_data[icon]:-}"
   TASKRUNNER_LABEL["$name"]="${section_data[label]:-$name}"
+  TASKRUNNER_PRIMARY_ACTION["$name"]="${section_data[primary_action]:-}"
+  TASKRUNNER_SECONDARY_ACTION["$name"]="${section_data[secondary_action]:-}"
 
   # Parse order property
   local _order="${section_data[order]:-}"
@@ -211,9 +219,44 @@ taskrunner_launch() {
   local dir
   dir=$(get_current_dir)
 
+  # Determine action based on key pressed
+  # Taskrunner has its own defaults, but can be overridden per-taskrunner
+  local action
+  if [[ "$key" == "$SECONDARY_KEY" ]]; then
+    action="${TASKRUNNER_SECONDARY_ACTION[$runner]:-$TASKRUNNER_DEFAULT_SECONDARY_ACTION}"
+  else
+    action="${TASKRUNNER_PRIMARY_ACTION[$runner]:-$TASKRUNNER_DEFAULT_PRIMARY_ACTION}"
+  fi
+
+  # Execute the action
+  case "$action" in
+    popup)
+      _taskrunner_open_popup "$task_name" "$cmd" "$dir"
+      ;;
+    window)
+      _taskrunner_open_window "$task_name" "$cmd" "$dir" true
+      ;;
+    background_window)
+      _taskrunner_open_window "$task_name" "$cmd" "$dir" false
+      ;;
+    *)
+      # Unknown action, default to window
+      _taskrunner_open_window "$task_name" "$cmd" "$dir" true
+      ;;
+  esac
+
+  return 0
+}
+
+# Open taskrunner in a tmux window
+# Args: task_name cmd dir switch_focus
+_taskrunner_open_window() {
+  local task_name="$1"
+  local cmd="$2"
+  local dir="$3"
+  local switch_focus="$4"
+
   # Build the command with environment setup, status indicator and wait
-  # Use -t $TMUX_PANE to rename THIS window, not the active one
-  # Source nunchux-run to apply parent environment before running the task
   local full_cmd="source '$NUNCHUX_BIN_DIR/nunchux-run'; $cmd"'
 exit_code=$?
 if [[ $exit_code -eq 0 ]]; then
@@ -229,7 +272,7 @@ read -n 1 -s'
   local existing_window
   existing_window=$(tmux list-windows -F '#{window_id} #{window_name}' | grep -F "$task_name" | head -1 | cut -d' ' -f1)
 
-  # Remember current window for primary action
+  # Remember current window
   local current_window
   current_window=$(tmux display-message -p '#{window_id}')
 
@@ -237,22 +280,59 @@ read -n 1 -s'
     # Reuse existing window - rename and respawn
     tmux rename-window -t "$existing_window" "$task_name $TASKRUNNER_ICON_RUNNING"
     tmux respawn-window -k -t "$existing_window" -c "$dir" bash -c "$full_cmd"
-    if [[ "$key" == "$SECONDARY_KEY" ]]; then
+    if [[ "$switch_focus" == "true" ]]; then
       tmux select-window -t "$existing_window"
     else
-      # Stay in current window
       tmux select-window -t "$current_window"
     fi
   else
     # Create new window
-    if [[ "$key" == "$SECONDARY_KEY" ]]; then
+    if [[ "$switch_focus" == "true" ]]; then
       tmux new-window -n "$task_name $TASKRUNNER_ICON_RUNNING" -c "$dir" bash -c "$full_cmd"
     else
       tmux new-window -d -n "$task_name $TASKRUNNER_ICON_RUNNING" -c "$dir" bash -c "$full_cmd"
     fi
   fi
+}
 
-  return 0
+# Open taskrunner in a popup
+# Args: task_name cmd dir
+_taskrunner_open_popup() {
+  local task_name="$1"
+  local cmd="$2"
+  local dir="$3"
+
+  local script_file="/tmp/nunchux-taskrunner-$$"
+
+  # Build popup script with environment setup and completion handling
+  cat >"$script_file" <<NUNCHUX_EOF
+#!/usr/bin/env bash
+
+# Apply parent shell environment
+source "$NUNCHUX_BIN_DIR/nunchux-run"
+
+cd "$dir"
+
+# Run the task
+$cmd
+exit_code=\$?
+
+echo
+if [[ \$exit_code -eq 0 ]]; then
+    echo -e "\033[32m✓ Task completed successfully\033[0m"
+else
+    echo -e "\033[31m✗ Task failed with exit code \$exit_code\033[0m"
+fi
+echo
+echo "Press any key to close..."
+read -n 1 -s
+
+rm -f "$script_file"
+NUNCHUX_EOF
+  chmod +x "$script_file"
+
+  tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $task_name ' -w '$APP_POPUP_WIDTH' -h '$APP_POPUP_HEIGHT' '$script_file'"
+  exit 0
 }
 
 # Kill a taskrunner window by name (format: runner:task)

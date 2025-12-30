@@ -24,6 +24,8 @@ declare -gA APP_HEIGHT=()
 declare -gA APP_STATUS=()
 declare -gA APP_ON_EXIT=()
 declare -gA APP_PARENT=() # For submenu membership: app_name -> parent_menu
+declare -gA APP_PRIMARY_ACTION=()   # Per-app primary action override
+declare -gA APP_SECONDARY_ACTION=() # Per-app secondary action override
 declare -ga APP_ORDER=()  # Preserve order
 
 # Register with core
@@ -49,6 +51,8 @@ app_parse_section() {
   local _on_exit="${section_data[on_exit]:-}"
   local _status="${section_data[status]:-}"
   local _status_script="${section_data[status_script]:-}"
+  local _primary_action="${section_data[primary_action]:-}"
+  local _secondary_action="${section_data[secondary_action]:-}"
 
   # Store in arrays (staying in set +u context for array key safety)
   APP_CMD["$name"]="$_cmd"
@@ -56,6 +60,8 @@ app_parse_section() {
   APP_WIDTH["$name"]="$_width"
   APP_HEIGHT["$name"]="$_height"
   APP_ON_EXIT["$name"]="$_on_exit"
+  APP_PRIMARY_ACTION["$name"]="$_primary_action"
+  APP_SECONDARY_ACTION["$name"]="$_secondary_action"
 
   # Handle status or status_script
   if [[ -n "$_status_script" ]]; then
@@ -160,18 +166,23 @@ app_launch() {
   # Check if this is one of our apps
   [[ -z "${APP_CMD[$name]:-}" ]] && return 1
 
+  # Determine action based on key pressed
+  local action
   if [[ "$key" == "$SECONDARY_KEY" ]]; then
-    # Open in window
-    if is_app_running "$name"; then
-      switch_to_app "$name"
-    else
-      open_app "$name" "$cmd"
-    fi
-  elif is_app_running "$name"; then
-    switch_to_app "$name"
+    action="${APP_SECONDARY_ACTION[$name]:-$SECONDARY_ACTION}"
   else
-    open_popup "$name" "$cmd" "$width" "$height" "$on_exit"
+    action="${APP_PRIMARY_ACTION[$name]:-$PRIMARY_ACTION}"
   fi
+
+  # If app already running and action is not background, switch to it
+  if is_app_running "$name" && [[ "$action" != "background_window" ]]; then
+    switch_to_app "$name"
+    return 0
+  fi
+
+  # Launch via centralized launcher - it handles action-specific behavior
+  nunchux_launch --type app --action "$action" --name "$name" --cmd "$cmd" \
+    --width "$width" --height "$height" --on-exit "$on_exit"
 
   return 0
 }
@@ -180,116 +191,6 @@ app_launch() {
 switch_to_app() {
   local name="$1"
   tmux select-window -t "$name" 2>/dev/null
-}
-
-# Open a new app in a new tmux window
-open_app() {
-  local name="$1"
-  local cmd="$2"
-  local dir
-  dir=$(get_current_dir)
-
-  # Use nunchux-run to apply parent shell environment
-  tmux new-window -n "$name" -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" bash -c "$cmd"
-}
-
-# Open app in a popup with app-specific dimensions
-open_popup() {
-  local name="$1"
-  local cmd="$2"
-  local app_width="$3"
-  local app_height="$4"
-  local on_exit="$5"
-  local dir
-  dir=$(get_current_dir)
-
-  # Use app-specific dimensions, fall back to defaults
-  local width height
-  width="${app_width:-$APP_POPUP_WIDTH}"
-  height="${app_height:-$APP_POPUP_HEIGHT}"
-  # Add % suffix if just a number
-  [[ "$width" =~ ^[0-9]+$ ]] && width="${width}%"
-  [[ "$height" =~ ^[0-9]+$ ]] && height="${height}%"
-
-  # Set up variables for substitution
-  local pane_id tmp script_file
-  pane_id=$(tmux display-message -p '#{pane_id}')
-  tmp="/tmp/nunchux-tmp-$$"
-  script_file="/tmp/nunchux-script-$$"
-
-  # Substitute variables in cmd and on_exit
-  local expanded_cmd="$cmd"
-  local expanded_on_exit="${on_exit:-}"
-  expanded_cmd="${expanded_cmd//\{pane_id\}/$pane_id}"
-  expanded_cmd="${expanded_cmd//\{tmp\}/$tmp}"
-  expanded_cmd="${expanded_cmd//\{dir\}/$dir}"
-  expanded_on_exit="${expanded_on_exit//\{pane_id\}/$pane_id}"
-  expanded_on_exit="${expanded_on_exit//\{tmp\}/$tmp}"
-  expanded_on_exit="${expanded_on_exit//\{dir\}/$dir}"
-
-  # Pick a random Chuck Norris fact for potential error display
-  local fact="${CHUCK_FACTS[$RANDOM % ${#CHUCK_FACTS[@]}]}"
-
-  # Write command to temp script with error handling
-  cat >"$script_file" <<NUNCHUX_EOF
-#!/usr/bin/env bash
-
-# Apply parent shell environment (for nvm, pyenv, etc.)
-source "$NUNCHUX_BIN_DIR/nunchux-run"
-
-export PATH="$NUNCHUX_BIN_DIR:\$PATH"
-cd "$dir"
-
-# Run the command
-$expanded_cmd
-exit_code=\$?
-
-# Run on_exit if defined
-$expanded_on_exit
-
-# If command failed, show error popup
-if [[ \$exit_code -ne 0 ]]; then
-    clear
-
-    center() {
-        local text="\$1"
-        local width=\$(tput cols)
-        local plain=\$(echo -e "\$text" | sed 's/\x1b\[[0-9;]*m//g')
-        local text_len=\${#plain}
-        local padding=\$(( (width - text_len) / 2 ))
-        [[ \$padding -gt 0 ]] && printf "%*s" \$padding ""
-        echo -e "\$text"
-    }
-
-    height=\$(tput lines)
-    top_padding=\$(( (height - 18) / 2 ))
-    for ((i=0; i<top_padding; i++)); do echo; done
-
-    center "\033[1;33m$fact\033[0m"
-    echo ""
-    center "\033[90mbut...\033[0m"
-    echo ""
-    while IFS= read -r line; do
-        center "\$line"
-    done <<< "$NUNCHUCKS_ART"
-    echo ""
-    echo ""
-    if [[ \$exit_code -eq 127 ]]; then
-        center "\033[1;31mCommand not found: $name\033[0m"
-    else
-        center "\033[1;31m$name exited with code \$exit_code\033[0m"
-    fi
-    echo ""
-    center "\033[90mpress any key\033[0m"
-    read -n 1 -s
-fi
-
-rm -f "$script_file"
-NUNCHUX_EOF
-  chmod +x "$script_file"
-
-  tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' nunchux: $name ' -w $width -h $height '$script_file'"
-  exit 0
 }
 
 # Kill a running app window

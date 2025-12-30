@@ -27,6 +27,8 @@ declare -gA DIRBROWSE_GLOB=()
 declare -gA DIRBROWSE_SORT=()
 declare -gA DIRBROWSE_SORT_DIR=()
 declare -gA DIRBROWSE_CACHE_TTL=()
+declare -gA DIRBROWSE_PRIMARY_ACTION=()   # Per-dirbrowser primary action override
+declare -gA DIRBROWSE_SECONDARY_ACTION=() # Per-dirbrowser secondary action override
 declare -ga DIRBROWSE_ORDER=()
 
 # Register with core
@@ -54,6 +56,8 @@ dirbrowser_parse_section() {
   DIRBROWSE_SORT["$name"]="${section_data[sort]:-modified}"
   DIRBROWSE_SORT_DIR["$name"]="${section_data[sort_direction]:-descending}"
   DIRBROWSE_CACHE_TTL["$name"]="${section_data[cache_ttl]:-300}"
+  DIRBROWSE_PRIMARY_ACTION["$name"]="${section_data[primary_action]:-}"
+  DIRBROWSE_SECONDARY_ACTION["$name"]="${section_data[secondary_action]:-}"
 
   # Parse order property
   local _order="${section_data[order]:-}"
@@ -291,17 +295,37 @@ launch_dirbrowse() {
     local editor="${VISUAL:-${EDITOR:-nvim}}"
     local file_basename
     file_basename=$(basename "$file_path")
+    local dir
+    dir=$(dirname "$file_path")
 
+    # Determine action based on key pressed
+    local action
     if [[ "$key" == "$SECONDARY_KEY" ]]; then
-      # Open in new tmux window with parent environment
-      local dir
-      dir=$(dirname "$file_path")
-      tmux new-window -n "$file_basename" -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" "$editor" "$file_path"
+      action="${DIRBROWSE_SECONDARY_ACTION[$name]:-$SECONDARY_ACTION}"
     else
-      # Open in editor popup with parent environment
-      tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $name: $file_basename ' -w $width -h $height '$NUNCHUX_BIN_DIR/nunchux-run' '$editor' '$file_path'"
-      exit 0
+      action="${DIRBROWSE_PRIMARY_ACTION[$name]:-$PRIMARY_ACTION}"
     fi
+
+    # Build command with proper quoting
+    local cmd
+    printf -v cmd '%q %q' "$editor" "$file_path"
+
+    # Determine window name based on action
+    local window_name="$file_basename"
+    [[ "$action" == "popup" ]] && window_name="$name: $file_basename"
+
+    # Launch via centralized launcher
+    nunchux_launch \
+      --type dirbrowser \
+      --action "$action" \
+      --name "$window_name" \
+      --cmd "$cmd" \
+      --dir "$dir" \
+      --width "$width" \
+      --height "$height"
+
+    # Exit after popup (it runs async)
+    [[ "$action" == "popup" ]] && exit 0
   fi
 }
 

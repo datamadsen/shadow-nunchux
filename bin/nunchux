@@ -310,11 +310,11 @@ launch() {
   local reload_cmd="$script_path --menu"
   local primary_display="${PRIMARY_KEY^}"
   local secondary_display="${SECONDARY_KEY^}"
-  local header="$primary_display: popup | $secondary_display: window | Ctrl-X: kill"
+  local header="$primary_display: primary_action | $secondary_display: secondary_action | Ctrl-X: kill"
 
   if [[ -n "$CURRENT_MENU" ]]; then
     reload_cmd="$script_path --menu --submenu $CURRENT_MENU"
-    header="$primary_display: popup | $secondary_display: window | Ctrl-X: kill | Esc: back"
+    header="$primary_display: primary_action | $secondary_display: secondary_action | Ctrl-X: kill | Esc: back"
   fi
 
   # Cache settings

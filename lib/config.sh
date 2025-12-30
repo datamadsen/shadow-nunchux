@@ -26,6 +26,11 @@ MENU_CACHE_TTL="${MENU_CACHE_TTL:-60}"
 PRIMARY_KEY="${PRIMARY_KEY:-enter}"
 SECONDARY_KEY="${SECONDARY_KEY:-ctrl-o}"
 
+# Actions (popup, window, background_window)
+# Note: These are global defaults; modules may have different defaults
+PRIMARY_ACTION="${PRIMARY_ACTION:-popup}"
+SECONDARY_ACTION="${SECONDARY_ACTION:-window}"
+
 # Taskrunner icons
 TASKRUNNER_ICON_RUNNING="${TASKRUNNER_ICON_RUNNING:-🔄}"
 TASKRUNNER_ICON_SUCCESS="${TASKRUNNER_ICON_SUCCESS:-✅}"
@@ -240,6 +245,8 @@ parse_config() {
         exclude_patterns) EXCLUDE_PATTERNS="$value" ;;
         primary_key) PRIMARY_KEY="$value" ;;
         secondary_key) SECONDARY_KEY="$value" ;;
+        primary_action) PRIMARY_ACTION="$value" ;;
+        secondary_action) SECONDARY_ACTION="$value" ;;
         esac
       elif [[ "$current_section" == "taskrunner" ]]; then
         # Handle taskrunner defaults
