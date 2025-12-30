@@ -189,7 +189,8 @@ open_app() {
     local dir
     dir=$(get_current_dir)
 
-    tmux new-window -n "$name" -c "$dir" "$cmd"
+    # Use nunchux-run to apply parent shell environment
+    tmux new-window -n "$name" -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" bash -c "$cmd"
 }
 
 # Open app in a popup with app-specific dimensions
