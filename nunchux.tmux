@@ -29,13 +29,21 @@ main() {
 
     # Bind key to open nunchux in a popup
     # Keys with "-" (like C-Space) bind without prefix, others require prefix
-    # Use -d to run in the current pane's directory
-    # Pass parent pane ID via tmux environment so plugin commands can send keys to the right pane
-    if [[ $key == *"-"* ]]; then
-        tmux bind-key -n "$key" run-shell "tmux set-environment NUNCHUX_PARENT_PANE '#{pane_id}'; tmux display-popup -E -b rounded -T ' nunchux ' -d '#{pane_current_path}' -w '$width' -h '$height' '$NUNCHUX_CMD'"
-    else
-        tmux bind-key "$key" run-shell "tmux set-environment NUNCHUX_PARENT_PANE '#{pane_id}'; tmux display-popup -E -b rounded -T ' nunchux ' -d '#{pane_current_path}' -w '$width' -h '$height' '$NUNCHUX_CMD'"
-    fi
+    #
+    # Environment inheritance:
+    # The env file is created by a shell hook (added to .bashrc/.zshrc).
+    # This captures the current shell environment after each command,
+    # so nunchux can inherit it even when launched from within vim/etc.
+    #
+    # To enable, add to your shell rc:
+    #   source ~/.tmux/plugins/nunchux/shell-init.bash
+    local env_file='/tmp/nunchux-env-#{pane_id}'
+    local setup_cmd="tmux set-environment NUNCHUX_PARENT_PANE '#{pane_id}'; tmux set-environment NUNCHUX_ENV_FILE '$env_file'"
+    local popup_cmd="tmux display-popup -E -B -d '#{pane_current_path}' -w '$width' -h '$height' '$NUNCHUX_CMD'"
+
+    local bind_opts=""
+    [[ $key == *"-"* ]] && bind_opts="-n"
+    tmux bind-key $bind_opts "$key" run-shell "$setup_cmd; $popup_cmd"
 }
 
 main

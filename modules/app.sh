@@ -232,6 +232,10 @@ open_popup() {
     # Write command to temp script with error handling
     cat > "$script_file" << NUNCHUX_EOF
 #!/usr/bin/env bash
+
+# Apply parent shell environment (for nvm, pyenv, etc.)
+source "$NUNCHUX_BIN_DIR/nunchux-run"
+
 export PATH="$NUNCHUX_BIN_DIR:\$PATH"
 cd "$dir"
 

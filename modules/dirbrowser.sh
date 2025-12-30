@@ -293,13 +293,13 @@ launch_dirbrowse() {
         file_basename=$(basename "$file_path")
 
         if [[ "$key" == "$SECONDARY_KEY" ]]; then
-            # Open in new tmux window
+            # Open in new tmux window with parent environment
             local dir
             dir=$(dirname "$file_path")
-            tmux new-window -n "$file_basename" -c "$dir" "$editor \"$file_path\""
+            tmux new-window -n "$file_basename" -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" "$editor" "$file_path"
         else
-            # Open in editor popup
-            tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $name: $file_basename ' -w $width -h $height '$editor \"$file_path\"'"
+            # Open in editor popup with parent environment
+            tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -T ' $name: $file_basename ' -w $width -h $height '$NUNCHUX_BIN_DIR/nunchux-run' '$editor' '$file_path'"
             exit 0
         fi
     fi

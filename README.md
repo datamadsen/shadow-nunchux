@@ -161,6 +161,40 @@ cmd = bash -c 'f=$(nearest notes.md) && exec nvim "$f" || echo "Not found"'
 status = f=$(nearest notes.md) && echo "($(lines "$f"), $(ago "$f"))"
 ```
 
+## Shell Integration (optional)
+
+If you use nvm, pyenv, or other tools that modify your shell environment, you'll
+want apps launched via nunchux to inherit that environment.
+
+**Why is this needed?**
+
+Tmux popups run in tmux's *server* environment, not your shell's environment.
+When you run `nvm use 18` or `export FOO=bar`, those changes only exist in your
+shell - tmux doesn't know about them. There's no tmux API to "run a command
+inside a pane's shell context", so we work around it with a shell hook that
+saves your environment after each command. When nunchux launches an app, it
+reads that saved environment.
+
+Add this to your shell rc file:
+
+**Bash** (`~/.bashrc`):
+```bash
+source ~/.tmux/plugins/nunchux/shell-init.bash
+```
+
+**Zsh** (`~/.zshrc`):
+```zsh
+source ~/.tmux/plugins/nunchux/shell-init.zsh
+```
+
+**Fish** (`~/.config/fish/config.fish`):
+```fish
+source ~/.tmux/plugins/nunchux/shell-init.fish
+```
+
+This saves your environment after each command, so apps launched from nunchux
+(even from within vim or lazygit) inherit your current PATH, exports, etc.
+
 ## Dependencies
 
 * tmux (duh)

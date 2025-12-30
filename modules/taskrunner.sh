@@ -205,9 +205,10 @@ taskrunner_launch() {
     local dir
     dir=$(get_current_dir)
 
-    # Build the command with status indicator and wait
+    # Build the command with environment setup, status indicator and wait
     # Use -t $TMUX_PANE to rename THIS window, not the active one
-    local full_cmd="$cmd"'
+    # Source nunchux-run to apply parent environment before running the task
+    local full_cmd="source '$NUNCHUX_BIN_DIR/nunchux-run'; $cmd"'
 exit_code=$?
 if [[ $exit_code -eq 0 ]]; then
     tmux rename-window -t "$TMUX_PANE" "'"$task_name"' '"$TASKRUNNER_ICON_SUCCESS"'"

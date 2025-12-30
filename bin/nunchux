@@ -451,9 +451,19 @@ nunchux - Smart tmux app launcher
 Usage: nunchux [options]
 
 Options:
-    (none)          Launch the app selector
-    --list          List configured apps
-    --help          Show this help
+    (none)              Launch the app selector
+    --list              List configured apps
+    --shell-init [sh]   Output shell init code (bash/zsh/fish)
+    --help              Show this help
+
+Environment Inheritance:
+    To inherit your shell environment (nvm, pyenv, etc.) in apps:
+
+    Bash: Add to ~/.bashrc:
+        eval "\$(nunchux --shell-init bash)"
+
+    Zsh: Add to ~/.zshrc:
+        eval "\$(nunchux --shell-init zsh)"
 
 Configuration:
     Searches upward from current directory for .nunchuxrc
@@ -484,9 +494,55 @@ list_apps() {
     done
 }
 
+# Output shell initialization code for environment capture
+shell_init() {
+    local shell_type="${1:-bash}"
+
+    cat <<'EOF'
+# Nunchux shell integration - saves environment for inheritance
+# This runs after each command, so apps launched via nunchux
+# inherit your current shell environment (PATH, nvm, pyenv, etc.)
+if [[ -n "$TMUX_PANE" ]]; then
+    _nunchux_save_env() {
+        env > "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null
+    }
+EOF
+
+    case "$shell_type" in
+        zsh)
+            cat <<'EOF'
+    precmd_functions+=(_nunchux_save_env)
+fi
+EOF
+            ;;
+        fish)
+            # Fish has completely different syntax
+            cat <<'EOF'
+if set -q TMUX_PANE
+    function _nunchux_save_env --on-event fish_postexec
+        env > "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null
+    end
+end
+EOF
+            return
+            ;;
+        *)  # bash and others
+            cat <<'EOF'
+    PROMPT_COMMAND="_nunchux_save_env${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+fi
+EOF
+            ;;
+    esac
+}
+
 # Main
 main() {
     case "${1:-}" in
+        --shell-init)
+            shift
+            shell_init "${1:-bash}"
+            exit 0
+            ;;
         --kill)
             shift
             # Try app first, then taskrunner
