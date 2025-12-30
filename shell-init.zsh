@@ -10,4 +10,7 @@ if [[ -n "$TMUX_PANE" ]]; then
         env > "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null
     }
     precmd_functions+=(_nunchux_save_env)
+
+    # Clean up env file when shell exits
+    trap 'rm -f "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null' EXIT
 fi

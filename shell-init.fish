@@ -9,4 +9,9 @@ if set -q TMUX_PANE
     function _nunchux_save_env --on-event fish_postexec
         env > "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null
     end
+
+    # Clean up env file when shell exits
+    function _nunchux_cleanup --on-event fish_exit
+        rm -f "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null
+    end
 end

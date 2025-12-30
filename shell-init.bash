@@ -10,4 +10,7 @@ if [[ -n "$TMUX_PANE" ]]; then
         env > "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null
     }
     PROMPT_COMMAND="_nunchux_save_env${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+
+    # Clean up env file when shell exits
+    trap 'rm -f "/tmp/nunchux-env-$TMUX_PANE" 2>/dev/null' EXIT
 fi
