@@ -104,13 +104,7 @@ dirbrowser_launch() {
 
   local browser_name="${name#dirbrowser:}"
 
-  # Easter egg: secondary key on dirbrowser
-  if [[ "$key" == "$SECONDARY_KEY" ]]; then
-    show_chuck_easter_egg
-    return 0
-  fi
-
-  # Launch the directory browser
+  # Both primary and secondary keys enter the dirbrowser (like submenus)
   launch_dirbrowse "$browser_name"
 
   return 0
