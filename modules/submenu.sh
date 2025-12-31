@@ -17,6 +17,7 @@ NUNCHUX_MOD_SUBMENU_LOADED=1
 declare -gA MENU_DESC=()
 declare -gA MENU_STATUS=()
 declare -gA SUBMENU_CACHE_TTL=()
+declare -gA MENU_SHORTCUT=()  # Per-menu keyboard shortcut
 declare -ga MENU_ORDER=()
 
 # Current submenu (empty = main menu)
@@ -40,6 +41,7 @@ menu_parse_section() {
   # Store menu configuration
   MENU_DESC["$name"]="${section_data[desc]:-}"
   SUBMENU_CACHE_TTL["$name"]="${section_data[cache_ttl]:-}"
+  MENU_SHORTCUT["$name"]="${section_data[shortcut]:-}"
 
   # Handle status or status_script
   if [[ -n "${section_data[status_script]:-}" ]]; then
@@ -85,9 +87,12 @@ menu_build_menu() {
       fi
     fi
 
+    local shortcut_prefix
+    shortcut_prefix=$(build_shortcut_prefix "${MENU_SHORTCUT[$name]:-}")
+
     # Format: visible_part \t name \t (empty fields for cmd, width, height, on_exit)
     # Use menu: prefix to identify submenus
-    printf "▸  %-12s  %s\t%s\t\t\t\t\n" "$name" "$desc" "menu:$name"
+    printf "%s▸ %-12s  %s\t%s\t\t\t\t\n" "$shortcut_prefix" "$name" "$desc" "menu:$name"
   done
 }
 

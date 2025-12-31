@@ -29,6 +29,7 @@ declare -gA DIRBROWSE_SORT_DIR=()
 declare -gA DIRBROWSE_CACHE_TTL=()
 declare -gA DIRBROWSE_PRIMARY_ACTION=()   # Per-dirbrowser primary action override
 declare -gA DIRBROWSE_SECONDARY_ACTION=() # Per-dirbrowser secondary action override
+declare -gA DIRBROWSE_SHORTCUT=()         # Per-dirbrowser keyboard shortcut
 declare -ga DIRBROWSE_ORDER=()
 
 # Register with core
@@ -58,6 +59,7 @@ dirbrowser_parse_section() {
   DIRBROWSE_CACHE_TTL["$name"]="${section_data[cache_ttl]:-300}"
   DIRBROWSE_PRIMARY_ACTION["$name"]="${section_data[primary_action]:-}"
   DIRBROWSE_SECONDARY_ACTION["$name"]="${section_data[secondary_action]:-}"
+  DIRBROWSE_SHORTCUT["$name"]="${section_data[shortcut]:-}"
 
   # Parse order property
   local _order="${section_data[order]:-}"
@@ -87,9 +89,12 @@ dirbrowser_build_menu() {
     file_count=$(find "$dir" -type f 2>/dev/null | wc -l | tr -d ' ')
     [[ "$file_count" -gt 1000 ]] && file_count="1000+"
 
+    local shortcut_prefix
+    shortcut_prefix=$(build_shortcut_prefix "${DIRBROWSE_SHORTCUT[$name]:-}")
+
     # Format: visible_part \t name \t (empty fields)
     # Use dirbrowser: prefix to identify
-    printf "▸  %-12s  (%s files)\t%s\t\t\t\t\n" "$name" "$file_count" "dirbrowser:$name"
+    printf "%s▸ %-12s  (%s files)\t%s\t\t\t\t\n" "$shortcut_prefix" "$name" "$file_count" "dirbrowser:$name"
   done
 }
 

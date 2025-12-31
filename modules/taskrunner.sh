@@ -181,13 +181,17 @@ taskrunner_build_menu() {
       tail_len=$((24 - content_len))
       ((tail_len < 3)) && tail_len=3
       divider_tail=$(printf '─%.0s' $(seq 1 $tail_len))
-      printf "   ─── %s%s %s\t\t\t\t\t\n" "$label" "$runner_icon" "$divider_tail"
+      local div_prefix
+      div_prefix=$(build_shortcut_prefix "")
+      printf "%s   ─── %s%s %s\t\t\t\t\t\n" "$div_prefix" "$label" "$runner_icon" "$divider_tail"
       current_runner="$runner"
     fi
 
     local display_name="$label $item"
     local name="${runner}:${item}"
-    printf "%s  %-${max_width}s  %s\t%s\t%s\t\t\t\n" "$ICON_STOPPED" "$display_name" "$desc" "$name" "$cmd"
+    local item_prefix
+    item_prefix=$(build_shortcut_prefix "")
+    printf "%s%s %-${max_width}s  %s\t%s\t%s\t\t\t\n" "$item_prefix" "$ICON_STOPPED" "$display_name" "$desc" "$name" "$cmd"
   done
 }
 

@@ -26,6 +26,7 @@ declare -gA APP_ON_EXIT=()
 declare -gA APP_PARENT=() # For submenu membership: app_name -> parent_menu
 declare -gA APP_PRIMARY_ACTION=()   # Per-app primary action override
 declare -gA APP_SECONDARY_ACTION=() # Per-app secondary action override
+declare -gA APP_SHORTCUT=()         # Per-app keyboard shortcut
 declare -ga APP_ORDER=()  # Preserve order
 
 # Register with core
@@ -53,6 +54,7 @@ app_parse_section() {
   local _status_script="${section_data[status_script]:-}"
   local _primary_action="${section_data[primary_action]:-}"
   local _secondary_action="${section_data[secondary_action]:-}"
+  local _shortcut="${section_data[shortcut]:-}"
 
   # Store in arrays (staying in set +u context for array key safety)
   APP_CMD["$name"]="$_cmd"
@@ -62,6 +64,7 @@ app_parse_section() {
   APP_ON_EXIT["$name"]="$_on_exit"
   APP_PRIMARY_ACTION["$name"]="$_primary_action"
   APP_SECONDARY_ACTION["$name"]="$_secondary_action"
+  APP_SHORTCUT["$name"]="$_shortcut"
 
   # Handle status or status_script
   if [[ -n "$_status_script" ]]; then
@@ -146,10 +149,12 @@ app_build_menu() {
     local width="${APP_WIDTH[$name]:-}"
     local height="${APP_HEIGHT[$name]:-}"
     local on_exit="${APP_ON_EXIT[$name]:-}"
+    local shortcut_prefix
+    shortcut_prefix=$(build_shortcut_prefix "${APP_SHORTCUT[$name]:-}")
 
     # Format: visible_part \t name \t cmd \t width \t height \t on_exit
-    printf "%s  %-12s  %s\t%s\t%s\t%s\t%s\t%s\n" \
-      "$icon" "$display_name" "$desc" "$name" "$cmd" "$width" "$height" "$on_exit"
+    printf "%s%s %-12s  %s\t%s\t%s\t%s\t%s\t%s\n" \
+      "$shortcut_prefix" "$icon" "$display_name" "$desc" "$name" "$cmd" "$width" "$height" "$on_exit"
   done
 }
 

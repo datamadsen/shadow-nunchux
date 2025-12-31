@@ -96,6 +96,59 @@ Code Cache, Session Storage, Local Storage, IndexedDB, databases, *.db, *.db-*,
 
 Patterns starting with `*` match filenames. Others exclude both directories and files with that name.
 
+## Keyboard Shortcuts
+
+Assign keyboard shortcuts to launch items directly from the menu without navigating:
+
+```ini
+[app:lazygit]
+cmd = lazygit
+shortcut = ctrl-g
+
+[menu:system]
+shortcut = ctrl-s
+
+[dirbrowser:configs]
+directory = ~/.config
+shortcut = ctrl-c
+```
+
+Press the shortcut key while the menu is open to launch the item immediately.
+
+### Viewing Shortcuts
+
+Press `Ctrl-/` to toggle the shortcut column visibility. When shown, shortcuts appear on the left:
+
+```
+[ctrl-g] │ ○ lazygit       Git TUI
+         │ ○ htop          Process viewer
+[ctrl-s] │ ▸ system        System tools
+```
+
+### Reserved Keys
+
+These keys cannot be used as shortcuts:
+
+- `enter`, `esc`, `ctrl-x` - Used by fzf/nunchux
+- `/` - Used for jump mode
+- Your configured `primary_key` and `secondary_key`
+
+### Validation
+
+Nunchux validates shortcuts at startup:
+
+- **Invalid keys** - Keys not supported by fzf (e.g., `shift-enter`)
+- **Reserved keys** - Keys used by nunchux itself
+- **Duplicates** - Same shortcut assigned to multiple items
+
+If any shortcuts are invalid, an error screen shows all issues.
+
+### Supported Keys
+
+Common shortcut keys: `ctrl-a` through `ctrl-z`, `alt-a` through `alt-z`, `f1` through `f12`, `tab`, `space`.
+
+Note: `shift-enter` and `ctrl-enter` are **not supported** by most terminals.
+
 ## Ordering
 
 By default, items appear in the order they're defined in the config file. Use the `order` property to override this:
@@ -137,6 +190,7 @@ on_exit = echo "done"
 | `on_exit` | No | Command to run after app exits |
 | `primary_action` | No | Override primary action for this app |
 | `secondary_action` | No | Override secondary action for this app |
+| `shortcut` | No | Keyboard shortcut (e.g., `ctrl-g`) |
 | `order` | No | Explicit sort order (lower = first) |
 
 ### Variables in cmd and on_exit
@@ -172,6 +226,7 @@ Menu sections support:
 - `status` - Dynamic status text
 - `desc` - Description
 - `cache_ttl` - Override cache duration for this submenu
+- `shortcut` - Keyboard shortcut (e.g., `ctrl-s`)
 - `order` - Explicit sort order (lower = first)
 
 ## Directory Browsers
@@ -202,6 +257,7 @@ height = 80
 | `height` | `80` | Popup height |
 | `primary_action` | `popup` | Override primary action |
 | `secondary_action` | `window` | Override secondary action |
+| `shortcut` | (none) | Keyboard shortcut (e.g., `ctrl-c`) |
 | `order` | (none) | Explicit sort order (lower = first) |
 
 ### Sort Modes

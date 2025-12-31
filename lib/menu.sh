@@ -7,6 +7,9 @@
 [[ -n "${NUNCHUX_LIB_MENU_LOADED:-}" ]] && return
 NUNCHUX_LIB_MENU_LOADED=1
 
+# Show shortcuts column (toggled with ctrl-/)
+SHOW_SHORTCUTS="${SHOW_SHORTCUTS:-}"
+
 # FZF styling defaults (can be overridden in config)
 FZF_PROMPT="${FZF_PROMPT:- }"
 FZF_POINTER="${FZF_POINTER:-▶}"
@@ -23,6 +26,7 @@ build_fzf_opts() {
   local -n opts=$1
   local header="$2"
   opts=(
+    --ansi
     --delimiter='\t'
     --with-nth=1
     --tiebreak=begin
@@ -50,6 +54,32 @@ parse_fzf_selection() {
   key=$(echo "$selection" | head -1)
   selected_line=$(echo "$selection" | tail -1)
   printf '%s\n%s\n' "$key" "$selected_line"
+}
+
+# Build fzf --bind options for all registered shortcuts
+# Usage: build_shortcut_binds binds_array script_path
+build_shortcut_binds() {
+  local -n binds=$1
+  local script_path="$2"
+
+  for key in "${!SHORTCUT_REGISTRY[@]}"; do
+    local item="${SHORTCUT_REGISTRY[$key]}"
+    binds+=("--bind=$key:become($script_path --launch-shortcut '$item')")
+  done
+}
+
+# Build shortcut prefix for menu display
+# Usage: prefix=$(build_shortcut_prefix "$shortcut")
+build_shortcut_prefix() {
+  local shortcut="$1"
+
+  [[ -z "$SHOW_SHORTCUTS" ]] && return
+
+  if [[ -n "$shortcut" ]]; then
+    printf '\033[38;5;244m%-9s\033[0m│ ' "[$shortcut]"
+  else
+    printf '%9s│ ' ""
+  fi
 }
 
 # vim: ft=bash ts=2 sw=2 et

@@ -2,6 +2,37 @@
 
 All notable changes to nunchux will be documented in this file.
 
+## [2.2.0]
+
+### Keyboard Shortcuts
+
+Assign keyboard shortcuts to launch items directly from the menu:
+
+```ini
+[app:lazygit]
+cmd = lazygit
+shortcut = ctrl-g
+
+[menu:system]
+shortcut = ctrl-s
+
+[dirbrowser:configs]
+directory = ~/.config
+shortcut = ctrl-c
+```
+
+Press the shortcut key while the menu is open to launch the item immediately.
+
+- **Toggle visibility** - Press `Ctrl-/` to show/hide the shortcut column
+- **Validation** - Invalid, reserved, or duplicate shortcuts show an error screen at startup
+- **Reserved keys** - `enter`, `esc`, `ctrl-x`, `/`, and your configured primary/secondary keys cannot be used
+
+Shortcuts are available on apps, submenus, and directory browsers. Taskrunner items cannot have shortcuts (they're discovered at runtime).
+
+### Bug Fixes
+
+- Fixed helper commands (`ago`, `lines`, `nearest`) not working in status commands when environment inheritance was enabled
+
 ## [2.1.0]
 
 ### New Features

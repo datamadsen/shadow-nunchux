@@ -73,6 +73,59 @@ is_valid_fzf_key() {
   return 1
 }
 
+# Reserved keys that cannot be used as shortcuts
+FZF_RESERVED_KEYS=(enter esc ctrl-x)
+
+# Global shortcut registry for duplicate detection
+declare -gA SHORTCUT_REGISTRY=()  # key -> item_name
+
+# Validate a shortcut key
+# Returns 0 if valid, 1 if invalid (with warning to stderr)
+validate_shortcut() {
+  local key="$1"
+  local item="$2"
+
+  # Empty is allowed (no shortcut)
+  [[ -z "$key" ]] && return 0
+
+  # Check if it's a valid fzf key
+  if ! is_valid_fzf_key "$key"; then
+    echo "Warning: invalid shortcut key '$key' for $item" >&2
+    return 1
+  fi
+
+  # Check reserved keys:
+  # - FZF_RESERVED_KEYS: static keys used by fzf/nunchux
+  # - PRIMARY_KEY: configured key for primary action (default: enter)
+  # - SECONDARY_KEY: configured key for secondary action (default: ctrl-o)
+  # - "/": used for jump mode
+  for reserved in "${FZF_RESERVED_KEYS[@]}" "$PRIMARY_KEY" "$SECONDARY_KEY" "/"; do
+    if [[ "$key" == "$reserved" ]]; then
+      echo "Warning: shortcut key '$key' is reserved" >&2
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# Register a shortcut, checking for duplicates
+# Returns 0 if registered, 1 if duplicate (with warning to stderr)
+register_shortcut() {
+  local key="$1"
+  local item="$2"
+
+  [[ -z "$key" ]] && return 0
+
+  if [[ -n "${SHORTCUT_REGISTRY[$key]:-}" ]]; then
+    echo "Warning: duplicate shortcut '$key' - already used by ${SHORTCUT_REGISTRY[$key]}" >&2
+    return 1
+  fi
+
+  SHORTCUT_REGISTRY["$key"]="$item"
+  return 0
+}
+
 # Validate keybindings and return error message if invalid
 validate_keybindings() {
   local invalid_keys=()

@@ -64,6 +64,9 @@ trap 'show_error_screen "$LINENO" "$BASH_COMMAND"' ERR
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Clear shortcut display state (set via --show-shortcuts flag only)
+unset SHOW_SHORTCUTS
+
 # Load core library (which loads all other libs)
 source "$SCRIPT_DIR/../lib/core.sh"
 
@@ -129,6 +132,111 @@ invalid_keys=$(validate_keybindings) || show_invalid_key_error "$invalid_keys"
 
 # Load enabled taskrunners
 load_taskrunners
+
+# Show invalid shortcut error
+show_invalid_shortcut_error() {
+  local errors="$1"
+  clear
+
+  center() {
+    local text="$1"
+    local width=$(tput cols)
+    local plain=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
+    local text_len=${#plain}
+    local padding=$(((width - text_len) / 2))
+    [[ $padding -gt 0 ]] && printf "%*s" $padding ""
+    echo -e "$text"
+  }
+
+  local height=$(tput lines)
+  local top_padding=$(((height - 24) / 2))
+  for ((i = 0; i < top_padding; i++)); do echo; done
+
+  center "\033[1;33mChuck Norris doesn't need shortcuts\033[0m"
+  echo ""
+  center "\033[90mbut you might want to fix yours...\033[0m"
+  echo ""
+  while IFS= read -r line; do
+    center "$line"
+  done <<<"$NUNCHUCKS_ART"
+  echo ""
+  echo ""
+  center "\033[1;31mInvalid shortcuts:\033[0m"
+  echo ""
+  while IFS= read -r err; do
+    [[ -n "$err" ]] && center "\033[90m$err\033[0m"
+  done <<<"$errors"
+  echo ""
+  center "\033[90mReserved keys: enter, esc, ctrl-x, /, $PRIMARY_KEY, $SECONDARY_KEY\033[0m"
+  echo ""
+  center "\033[90mpress any key\033[0m"
+  read -n 1 -s
+  exit 0
+}
+
+# Register all shortcuts after config is fully parsed
+register_all_shortcuts() {
+  local errors=""
+
+  # Helper to register a single shortcut and collect errors
+  _try_register() {
+    local key="$1" item="$2" registry_key="$3"
+
+    [[ -z "$key" ]] && return 0
+
+    if ! validate_shortcut "$key" "$item" 2>/dev/null; then
+      errors+="$key ($item) - "
+      if ! is_valid_fzf_key "$key"; then
+        errors+="invalid fzf key"
+      else
+        errors+="reserved key"
+      fi
+      errors+=$'\n'
+    elif ! register_shortcut "$key" "$registry_key" 2>/dev/null; then
+      errors+="$key ($item) - duplicate of ${SHORTCUT_REGISTRY[$key]}"$'\n'
+    fi
+  }
+
+  local name
+  for name in "${APP_ORDER[@]}"; do
+    _try_register "${APP_SHORTCUT[$name]:-}" "app:$name" "$name"
+  done
+
+  for name in "${MENU_ORDER[@]}"; do
+    _try_register "${MENU_SHORTCUT[$name]:-}" "menu:$name" "menu:$name"
+  done
+
+  for name in "${DIRBROWSE_ORDER[@]}"; do
+    _try_register "${DIRBROWSE_SHORTCUT[$name]:-}" "dirbrowser:$name" "dirbrowser:$name"
+  done
+
+  unset -f _try_register
+
+  if [[ -n "$errors" ]]; then
+    show_invalid_shortcut_error "$errors"
+  fi
+}
+
+register_all_shortcuts
+
+# Launch an item by shortcut
+launch_by_shortcut() {
+  local item="$1"
+
+  if [[ "$item" == menu:* ]]; then
+    # Enter submenu
+    CURRENT_MENU="${item#menu:}"
+    launch
+  elif [[ "$item" == dirbrowser:* ]]; then
+    # Enter dirbrowser
+    launch_dirbrowse "${item#dirbrowser:}"
+  else
+    # Launch app with primary action
+    local cmd="${APP_CMD[$item]:-}"
+    [[ -z "$cmd" ]] && { echo "Unknown item: $item" >&2; exit 1; }
+    app_launch "$item" "" "$cmd" "${APP_WIDTH[$item]:-}" "${APP_HEIGHT[$item]:-}" "${APP_ON_EXIT[$item]:-}"
+  fi
+}
 
 # Check if any items are configured
 has_config() {
@@ -334,6 +442,21 @@ launch() {
   local fzf_opts
   build_fzf_opts fzf_opts "$header"
   fzf_opts+=(--bind="ctrl-x:reload($script_path --kill {2} >/dev/null 2>&1; $reload_cmd)")
+
+  # Add shortcut bindings
+  local shortcut_binds=()
+  build_shortcut_binds shortcut_binds "$script_path"
+  fzf_opts+=("${shortcut_binds[@]}")
+
+  # Add ctrl-/ toggle for shortcuts display
+  local toggle_cmd="$script_path"
+  [[ -n "$CURRENT_MENU" ]] && toggle_cmd="$toggle_cmd --submenu $CURRENT_MENU"
+
+  if [[ -n "$SHOW_SHORTCUTS" ]]; then
+    fzf_opts+=(--bind="ctrl-/:become($toggle_cmd)")
+  else
+    fzf_opts+=(--bind="ctrl-/:become($toggle_cmd --show-shortcuts)")
+  fi
 
   # Run with cache if valid
   local fzf_exit=0
@@ -578,6 +701,23 @@ main() {
       echo "Press any key to close..."
       read -n 1
     fi
+    ;;
+  --show-shortcuts)
+    SHOW_SHORTCUTS=1
+    export SHOW_SHORTCUTS
+    shift
+    if [[ "${1:-}" == "--submenu" ]]; then
+      CURRENT_MENU="$2"
+      FZF_BORDER_LABEL=" $NUNCHUX_LABEL: $CURRENT_MENU "
+    fi
+    if ! launch 2>&1; then
+      echo "Press any key to close..."
+      read -n 1
+    fi
+    ;;
+  --launch-shortcut)
+    shift
+    launch_by_shortcut "$1"
     ;;
   --help | -h | help)
     usage
