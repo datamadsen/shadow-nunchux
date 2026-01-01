@@ -48,6 +48,28 @@ max_menu_height = 40
 
 Percentages are calculated against the tmux window size, then clamped to the maximum.
 
+### Declarative Ordering
+
+The per-item `order` property has been replaced with declarative `[order]` sections for simpler configuration:
+
+```ini
+[order]
+lazygit
+config
+taskrunner:just
+system
+taskrunner:npm
+docker
+```
+
+Items are displayed in the order listed. Unlisted items are appended alphabetically.
+
+- **Taskrunners in main order** - Use `taskrunner:name` format to position taskrunners anywhere in the menu
+- **Submenu ordering** - Use `[order:submenu_name]` to control item order within submenus
+- **Migration assistant** - Automatically converts old `order =` properties to new format with backup
+
+When you launch nunchux with the old `order =` properties, an interactive migration prompt will convert your config automatically.
+
 ### Bug Fixes
 
 - Fixed helper commands (`ago`, `lines`, `nearest`) not working in status commands when environment inheritance was enabled
@@ -184,7 +206,7 @@ When you launch nunchux with an old config, you'll see an interactive migration 
 ### New Features
 
 - **Per-project configs** - Place `.nunchuxrc` in any directory, searches upward like `.gitignore`
-- **Ordering control** - New `order` property on any item, lower values appear first
+- **Ordering control** - ~~New `order` property on any item~~ (replaced by `[order]` sections in v2.3.0)
 
 ### Improvements
 
