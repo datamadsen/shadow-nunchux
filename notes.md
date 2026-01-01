@@ -10,4 +10,7 @@ recipes (and npm scripts) are only valid for the directory where they were found
 - it could be nice to have the current sizing options, but also add a "max"
 width/height that would make the menu not exceed a certain size.
 
+- maybe the popup should open centered in the pane that is in focus, if that is
+  possible.
+
 <!-- vim: set ft=markdown ts=2 sw=2 et: -->
