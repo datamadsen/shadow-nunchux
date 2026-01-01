@@ -66,15 +66,9 @@ taskrunner_parse_section() {
   TASKRUNNER_PRIMARY_ACTION["$name"]="${section_data[primary_action]:-}"
   TASKRUNNER_SECONDARY_ACTION["$name"]="${section_data[secondary_action]:-}"
 
-  # Parse order property
-  local _order="${section_data[order]:-}"
-
   set -u
 
   TASKRUNNER_ORDER+=("$name")
-
-  # Track in global order with optional explicit order
-  track_config_item "taskrunner:$name" "$_order"
 }
 
 # Load taskrunner providers from taskrunners directory

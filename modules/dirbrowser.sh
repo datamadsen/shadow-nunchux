@@ -61,15 +61,9 @@ dirbrowser_parse_section() {
   DIRBROWSE_SECONDARY_ACTION["$name"]="${section_data[secondary_action]:-}"
   DIRBROWSE_SHORTCUT["$name"]="${section_data[shortcut]:-}"
 
-  # Parse order property
-  local _order="${section_data[order]:-}"
-
   set -u
 
   DIRBROWSE_ORDER+=("$name")
-
-  # Track in global order with optional explicit order
-  track_config_item "dirbrowser:$name" "$_order"
 }
 
 # Build menu entries for directory browsers

@@ -81,10 +81,6 @@ app_parse_section() {
 
   APP_ORDER+=("$name")
 
-  # Track in global order with optional explicit order
-  local _order="${section_data[order]:-}"
-  track_config_item "app:$name" "$_order"
-
   set -u
 }
 

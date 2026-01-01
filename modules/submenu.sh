@@ -51,15 +51,9 @@ menu_parse_section() {
     MENU_STATUS["$name"]="${section_data[status]}"
   fi
 
-  # Parse order property
-  local _order="${section_data[order]:-}"
-
   set -u
 
   MENU_ORDER+=("$name")
-
-  # Track in global order with optional explicit order
-  track_config_item "menu:$name" "$_order"
 }
 
 # Build menu entries for submenus

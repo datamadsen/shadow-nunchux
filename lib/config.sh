@@ -156,46 +156,9 @@ EXCLUDE_PATTERNS="${EXCLUDE_PATTERNS:-.git, node_modules, Cache, cache, .cache, 
 # Module dispatch table: type -> handler function
 declare -gA CONFIG_TYPE_HANDLERS
 
-# Global item order tracking (type:name in order of appearance)
-declare -ga CONFIG_ITEM_ORDER=()
-declare -gA CONFIG_ITEM_EXPLICIT_ORDER=() # Explicit order overrides (item -> order number)
-
-# Track item when parsed (called by module parse functions)
-# Usage: track_config_item "app:lazygit" [explicit_order]
-track_config_item() {
-  local item="$1"
-  local explicit_order="${2:-}"
-
-  CONFIG_ITEM_ORDER+=("$item")
-
-  if [[ -n "$explicit_order" ]]; then
-    CONFIG_ITEM_EXPLICIT_ORDER["$item"]="$explicit_order"
-  fi
-}
-
-# Get sort key for an item (explicit order or parse order)
-# Lower number = higher priority
-get_item_order() {
-  local item="$1"
-
-  # Check for explicit order first
-  if [[ -v CONFIG_ITEM_EXPLICIT_ORDER[$item] && -n "${CONFIG_ITEM_EXPLICIT_ORDER[$item]}" ]]; then
-    echo "${CONFIG_ITEM_EXPLICIT_ORDER[$item]}"
-    return
-  fi
-
-  # Otherwise use parse order (1000 + index to sort after explicit orders)
-  local i
-  for i in "${!CONFIG_ITEM_ORDER[@]}"; do
-    if [[ "${CONFIG_ITEM_ORDER[$i]}" == "$item" ]]; then
-      echo "$((1000 + i))"
-      return
-    fi
-  done
-
-  # Fallback - shouldn't happen
-  echo "9999"
-}
+# Order section storage
+declare -ga MAIN_ORDER=()              # Items from [order] section (including taskrunner:name)
+declare -gA SUBMENU_ORDER=()           # Associative: submenu_name -> "item1 item2 item3"
 
 # Register a config type handler
 # Usage: register_config_type "app" "app_parse_section"
@@ -249,7 +212,7 @@ parse_config() {
     [[ "$line" =~ ^[[:space:]]*# ]] && continue
     [[ "$line" =~ ^[[:space:]]*$ ]] && continue
 
-    # Section header: [type:name] or [settings]
+    # Section header: [type:name] or [settings] or [order] or [order:*]
     if [[ "$line" =~ ^\[([^\]]+)\] ]]; then
       flush_section
       current_section="${BASH_REMATCH[1]}"
@@ -257,6 +220,14 @@ parse_config() {
       if [[ "$current_section" == "settings" ]]; then
         current_type=""
         current_name=""
+      elif [[ "$current_section" == "order" ]]; then
+        # [order] section - main menu order
+        current_type="order"
+        current_name=""
+      elif [[ "$current_section" =~ ^order:(.+)$ ]]; then
+        # [order:submenu] or [order:taskrunner] section
+        current_type="order"
+        current_name="${BASH_REMATCH[1]}"
       elif [[ "$current_section" =~ ^([^:]+):(.+)$ ]]; then
         # [type:name] format
         current_type="${BASH_REMATCH[1]}"
@@ -321,6 +292,24 @@ parse_config() {
       else
         # Store in section_data for module handler
         section_data["$key"]="$value"
+      fi
+    elif [[ "$current_type" == "order" ]]; then
+      # Order section: lines are item names, not key=value
+      # Trim whitespace from line
+      local item="${line#"${line%%[![:space:]]*}"}"
+      item="${item%"${item##*[![:space:]]}"}"
+      [[ -z "$item" ]] && continue
+
+      if [[ -z "$current_name" ]]; then
+        # [order] - main menu order (apps, dirbrowsers, submenus, taskrunner:name)
+        MAIN_ORDER+=("$item")
+      else
+        # [order:submenu_name] - submenu item order
+        if [[ -v SUBMENU_ORDER[$current_name] ]]; then
+          SUBMENU_ORDER[$current_name]+=" $item"
+        else
+          SUBMENU_ORDER[$current_name]="$item"
+        fi
       fi
     fi
   done <"$config_file"

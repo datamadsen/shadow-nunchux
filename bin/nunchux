@@ -79,6 +79,9 @@ load_modules
 # Check for old config format and offer migration
 check_and_migrate_config || exit 0
 
+# Check for old order format and offer migration
+check_and_migrate_order_config || exit 0
+
 # Load and parse config
 config_file=$(get_config_file)
 if [[ -n "$config_file" ]]; then

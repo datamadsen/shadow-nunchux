@@ -174,19 +174,41 @@ Note: `shift-enter` and `ctrl-enter` are **not supported** by most terminals.
 
 ## Ordering
 
-By default, items appear in the order they're defined in the config file. Use the `order` property to override this:
+Use `[order]` sections to control item order declaratively:
 
 ```ini
-[app:htop]
-order = 10
-
-[app:lazygit]
-order = 5    # Appears before htop despite being defined after
+[order]
+lazygit
+config
+taskrunner:just
+system
+taskrunner:npm
+docker
+htop
+# Items not listed appear alphabetically after these
 ```
 
-Lower values appear first. Items without `order` are sorted by config file position (after items with explicit orders).
+Items are displayed in the order listed. Unlisted items are appended alphabetically.
 
-The `order` property is available on all section types: apps, menus, dirbrowsers, and taskrunners.
+Taskrunners use the `taskrunner:name` format (e.g., `taskrunner:just`). All tasks for that runner appear at that position. Individual tasks within each runner remain in their discovery order.
+
+### Submenu Ordering
+
+Control item order within submenus:
+
+```ini
+[order:system]
+duf
+ncdu
+btop
+journalctl
+```
+
+### Ordering Notes
+
+- Items not listed in `[order]` appear alphabetically after ordered items
+- Non-existent items in `[order]` sections are silently ignored
+- Apps, dirbrowsers, submenus, and taskrunners can all be listed in `[order]`
 
 ## Apps
 
@@ -214,7 +236,6 @@ on_exit = echo "done"
 | `primary_action` | No | Override primary action for this app |
 | `secondary_action` | No | Override secondary action for this app |
 | `shortcut` | No | Keyboard shortcut (e.g., `ctrl-g`) |
-| `order` | No | Explicit sort order (lower = first) |
 
 ### Variables in cmd and on_exit
 
@@ -281,7 +302,6 @@ height = 80
 | `primary_action` | `popup` | Override primary action |
 | `secondary_action` | `window` | Override secondary action |
 | `shortcut` | (none) | Keyboard shortcut (e.g., `ctrl-c`) |
-| `order` | (none) | Explicit sort order (lower = first) |
 
 ### Sort Modes
 
@@ -319,7 +339,6 @@ Task runners are **disabled by default** and must be explicitly enabled.
 | `label` | (runner name) | Label shown in menu |
 | `primary_action` | `window` | Override primary action |
 | `secondary_action` | `background_window` | Override secondary action |
-| `order` | (none) | Explicit sort order (lower = first) |
 
 ### Available Task Runners
 
