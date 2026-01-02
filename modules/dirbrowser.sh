@@ -257,8 +257,10 @@ launch_dirbrowse() {
     [[ -n "$POPUP_KEY" ]] && header="$header | ${POPUP_KEY^}: popup"
     [[ -n "$WINDOW_KEY" ]] && header="$header | ${WINDOW_KEY^}: window"
     [[ -n "$BACKGROUND_WINDOW_KEY" ]] && header="$header | ${BACKGROUND_WINDOW_KEY^}: bg"
-    [[ -n "$PANE_HORIZONTAL_KEY" ]] && header="$header | ${PANE_HORIZONTAL_KEY^}: hsplit"
-    [[ -n "$PANE_VERTICAL_KEY" ]] && header="$header | ${PANE_VERTICAL_KEY^}: vsplit"
+    [[ -n "$PANE_RIGHT_KEY" ]] && header="$header | ${PANE_RIGHT_KEY^}: right"
+    [[ -n "$PANE_LEFT_KEY" ]] && header="$header | ${PANE_LEFT_KEY^}: left"
+    [[ -n "$PANE_ABOVE_KEY" ]] && header="$header | ${PANE_ABOVE_KEY^}: above"
+    [[ -n "$PANE_BELOW_KEY" ]] && header="$header | ${PANE_BELOW_KEY^}: below"
     [[ -n "$ACTION_MENU_KEY" ]] && header="$header | ${ACTION_MENU_KEY^}: actions"
   fi
   build_fzf_opts fzf_opts "$header"

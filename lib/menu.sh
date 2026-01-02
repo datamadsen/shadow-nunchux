@@ -11,7 +11,7 @@ NUNCHUX_LIB_MENU_LOADED=1
 SHOW_SHORTCUTS="${SHOW_SHORTCUTS:-}"
 
 # FZF styling defaults (can be overridden in config)
-FZF_PROMPT="${FZF_PROMPT:- }"
+FZF_PROMPT="${FZF_PROMPT:-> }"
 FZF_POINTER="${FZF_POINTER:-▶}"
 FZF_BORDER="${FZF_BORDER:-none}"
 FZF_COLORS="${FZF_COLORS:-fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray}"
@@ -55,8 +55,10 @@ build_fzf_opts() {
   [[ -n "$POPUP_KEY" ]] && expect_keys="$expect_keys,$POPUP_KEY"
   [[ -n "$WINDOW_KEY" ]] && expect_keys="$expect_keys,$WINDOW_KEY"
   [[ -n "$BACKGROUND_WINDOW_KEY" ]] && expect_keys="$expect_keys,$BACKGROUND_WINDOW_KEY"
-  [[ -n "$PANE_HORIZONTAL_KEY" ]] && expect_keys="$expect_keys,$PANE_HORIZONTAL_KEY"
-  [[ -n "$PANE_VERTICAL_KEY" ]] && expect_keys="$expect_keys,$PANE_VERTICAL_KEY"
+  [[ -n "$PANE_RIGHT_KEY" ]] && expect_keys="$expect_keys,$PANE_RIGHT_KEY"
+  [[ -n "$PANE_LEFT_KEY" ]] && expect_keys="$expect_keys,$PANE_LEFT_KEY"
+  [[ -n "$PANE_ABOVE_KEY" ]] && expect_keys="$expect_keys,$PANE_ABOVE_KEY"
+  [[ -n "$PANE_BELOW_KEY" ]] && expect_keys="$expect_keys,$PANE_BELOW_KEY"
   [[ -n "$ACTION_MENU_KEY" ]] && expect_keys="$expect_keys,$ACTION_MENU_KEY"
 
   opts=(
@@ -93,8 +95,10 @@ key_to_action() {
     "$POPUP_KEY") [[ -n "$POPUP_KEY" ]] && echo "popup" ;;
     "$WINDOW_KEY") [[ -n "$WINDOW_KEY" ]] && echo "window" ;;
     "$BACKGROUND_WINDOW_KEY") [[ -n "$BACKGROUND_WINDOW_KEY" ]] && echo "background_window" ;;
-    "$PANE_HORIZONTAL_KEY") [[ -n "$PANE_HORIZONTAL_KEY" ]] && echo "pane_horizontal" ;;
-    "$PANE_VERTICAL_KEY") [[ -n "$PANE_VERTICAL_KEY" ]] && echo "pane_vertical" ;;
+    "$PANE_RIGHT_KEY") [[ -n "$PANE_RIGHT_KEY" ]] && echo "pane_right" ;;
+    "$PANE_LEFT_KEY") [[ -n "$PANE_LEFT_KEY" ]] && echo "pane_left" ;;
+    "$PANE_ABOVE_KEY") [[ -n "$PANE_ABOVE_KEY" ]] && echo "pane_above" ;;
+    "$PANE_BELOW_KEY") [[ -n "$PANE_BELOW_KEY" ]] && echo "pane_below" ;;
     "$ACTION_MENU_KEY") [[ -n "$ACTION_MENU_KEY" ]] && echo "action_menu" ;;
   esac
 }

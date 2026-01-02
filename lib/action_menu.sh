@@ -16,8 +16,10 @@ _get_builtin_actions() {
 popup	Open in popup
 window	Open in window
 background_window	Open in background window
-pane_horizontal	Open in horizontal split
-pane_vertical	Open in vertical split
+pane_right	Open in pane to the right
+pane_left	Open in pane to the left
+pane_above	Open in pane above
+pane_below	Open in pane below
 EOF
 }
 
@@ -76,7 +78,8 @@ show_action_menu() {
     --border=rounded \
     --border-label="$label" \
     --no-info \
-    --prompt=" " \
+    --prompt="Action: " \
+    --pointer="$FZF_POINTER" \
     --color="$FZF_COLORS" \
     | cut -f1)
 

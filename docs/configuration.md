@@ -92,8 +92,10 @@ The percentage is calculated against the current tmux window size, then clamped 
 | `popup` | Open in a tmux popup overlay |
 | `window` | Open in a new tmux window with focus |
 | `background_window` | Open in a new tmux window, stay in current pane |
-| `pane_horizontal` | Open in a horizontal split pane |
-| `pane_vertical` | Open in a vertical split pane |
+| `pane_right` | Open in a pane to the right |
+| `pane_left` | Open in a pane to the left |
+| `pane_above` | Open in a pane above |
+| `pane_below` | Open in a pane below |
 
 Different item types have different default actions:
 
@@ -114,8 +116,10 @@ In addition to primary/secondary keys, you can configure dedicated shortcuts tha
 | `popup_key` | Always open in popup |
 | `window_key` | Always open in window |
 | `background_window_key` | Always open in background window |
-| `pane_horizontal_key` | Always open in horizontal split |
-| `pane_vertical_key` | Always open in vertical split |
+| `pane_right_key` | Always open in pane to the right |
+| `pane_left_key` | Always open in pane to the left |
+| `pane_above_key` | Always open in pane above |
+| `pane_below_key` | Always open in pane below |
 
 These are disabled by default (empty). Enable the ones you want:
 
@@ -124,15 +128,13 @@ These are disabled by default (empty). Enable the ones you want:
 popup_key = ctrl-p
 window_key = ctrl-w
 background_window_key = ctrl-b
-pane_horizontal_key = ctrl-h
-pane_vertical_key = ctrl-v
+pane_right_key = ctrl-right
+pane_left_key = ctrl-left
+pane_above_key = ctrl-up
+pane_below_key = ctrl-down
 ```
 
-When configured, these shortcuts appear in the help header (toggle with `Ctrl-/`):
-
-```
-Enter: popup | Ctrl-O: window | Ctrl-X: kill | Ctrl-H: hsplit | Ctrl-V: vsplit
-```
+When configured, these shortcuts appear in the help header (toggle with `Ctrl-/`).
 
 These keys are reserved and cannot be used as item shortcuts.
 

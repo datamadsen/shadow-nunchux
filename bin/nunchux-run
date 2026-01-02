@@ -56,7 +56,7 @@ _nunchux_apply_env() {
 # Usage: nunchux_launch --action ACTION --name NAME --cmd CMD [OPTIONS]
 #
 # Options:
-#   --action        popup | window | background_window
+#   --action        popup | window | background_window | pane_right | pane_left | pane_above | pane_below
 #   --name          Window/popup title
 #   --cmd           Command to execute
 #   --dir           Working directory (default: current pane dir)
@@ -134,11 +134,17 @@ nunchux_launch() {
   background_window)
     tmux new-window -d -n "$name" -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" bash -c "$cmd"
     ;;
-  pane_horizontal)
+  pane_right)
     tmux split-window -h -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" bash -c "$cmd"
     ;;
-  pane_vertical)
+  pane_left)
+    tmux split-window -h -b -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" bash -c "$cmd"
+    ;;
+  pane_below)
     tmux split-window -v -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" bash -c "$cmd"
+    ;;
+  pane_above)
+    tmux split-window -v -b -c "$dir" "$NUNCHUX_BIN_DIR/nunchux-run" bash -c "$cmd"
     ;;
   *)
     echo "nunchux_launch: unknown action '$action'" >&2

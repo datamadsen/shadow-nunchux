@@ -32,7 +32,7 @@ SHOW_CWD="${SHOW_CWD:-true}"             # show current working directory in men
 PRIMARY_KEY="${PRIMARY_KEY:-enter}"
 SECONDARY_KEY="${SECONDARY_KEY:-ctrl-o}"
 
-# Actions (popup, window, background_window, pane_horizontal, pane_vertical)
+# Actions (popup, window, background_window, pane_right, pane_left, pane_above, pane_below)
 # Note: These are global defaults; modules may have different defaults
 PRIMARY_ACTION="${PRIMARY_ACTION:-popup}"
 SECONDARY_ACTION="${SECONDARY_ACTION:-window}"
@@ -42,8 +42,10 @@ SECONDARY_ACTION="${SECONDARY_ACTION:-window}"
 POPUP_KEY="${POPUP_KEY:-}"
 WINDOW_KEY="${WINDOW_KEY:-}"
 BACKGROUND_WINDOW_KEY="${BACKGROUND_WINDOW_KEY:-}"
-PANE_HORIZONTAL_KEY="${PANE_HORIZONTAL_KEY:-}"
-PANE_VERTICAL_KEY="${PANE_VERTICAL_KEY:-}"
+PANE_RIGHT_KEY="${PANE_RIGHT_KEY:-}"
+PANE_LEFT_KEY="${PANE_LEFT_KEY:-}"
+PANE_ABOVE_KEY="${PANE_ABOVE_KEY:-}"
+PANE_BELOW_KEY="${PANE_BELOW_KEY:-}"
 
 # Action menu key (shows menu to select action)
 # Note: ctrl-m is the same as Enter in terminals, so we use ctrl-j by default
@@ -67,6 +69,7 @@ FZF_SUPPORTED_KEYS=(
   ctrl-k ctrl-l ctrl-m ctrl-n ctrl-o ctrl-p ctrl-q ctrl-r ctrl-s ctrl-t
   ctrl-u ctrl-v ctrl-w ctrl-x ctrl-y ctrl-z
   ctrl-space ctrl-delete ctrl-backspace
+  ctrl-up ctrl-down ctrl-left ctrl-right
   # Alt combinations
   alt-a alt-b alt-c alt-d alt-e alt-f alt-g alt-h alt-i alt-j
   alt-k alt-l alt-m alt-n alt-o alt-p alt-q alt-r alt-s alt-t
@@ -121,7 +124,8 @@ validate_shortcut() {
   # - "/": used for jump mode
   for reserved in "${FZF_RESERVED_KEYS[@]}" "$PRIMARY_KEY" "$SECONDARY_KEY" \
       "$POPUP_KEY" "$WINDOW_KEY" "$BACKGROUND_WINDOW_KEY" \
-      "$PANE_HORIZONTAL_KEY" "$PANE_VERTICAL_KEY" "$ACTION_MENU_KEY" "/"; do
+      "$PANE_RIGHT_KEY" "$PANE_LEFT_KEY" "$PANE_ABOVE_KEY" "$PANE_BELOW_KEY" \
+      "$ACTION_MENU_KEY" "/"; do
     if [[ "$key" == "$reserved" ]]; then
       echo "Warning: shortcut key '$key' is reserved" >&2
       return 1
@@ -167,10 +171,14 @@ validate_keybindings() {
     invalid_keys+=("window_key: $WINDOW_KEY")
   [[ -n "$BACKGROUND_WINDOW_KEY" ]] && ! is_valid_fzf_key "$BACKGROUND_WINDOW_KEY" && \
     invalid_keys+=("background_window_key: $BACKGROUND_WINDOW_KEY")
-  [[ -n "$PANE_HORIZONTAL_KEY" ]] && ! is_valid_fzf_key "$PANE_HORIZONTAL_KEY" && \
-    invalid_keys+=("pane_horizontal_key: $PANE_HORIZONTAL_KEY")
-  [[ -n "$PANE_VERTICAL_KEY" ]] && ! is_valid_fzf_key "$PANE_VERTICAL_KEY" && \
-    invalid_keys+=("pane_vertical_key: $PANE_VERTICAL_KEY")
+  [[ -n "$PANE_RIGHT_KEY" ]] && ! is_valid_fzf_key "$PANE_RIGHT_KEY" && \
+    invalid_keys+=("pane_right_key: $PANE_RIGHT_KEY")
+  [[ -n "$PANE_LEFT_KEY" ]] && ! is_valid_fzf_key "$PANE_LEFT_KEY" && \
+    invalid_keys+=("pane_left_key: $PANE_LEFT_KEY")
+  [[ -n "$PANE_ABOVE_KEY" ]] && ! is_valid_fzf_key "$PANE_ABOVE_KEY" && \
+    invalid_keys+=("pane_above_key: $PANE_ABOVE_KEY")
+  [[ -n "$PANE_BELOW_KEY" ]] && ! is_valid_fzf_key "$PANE_BELOW_KEY" && \
+    invalid_keys+=("pane_below_key: $PANE_BELOW_KEY")
   [[ -n "$ACTION_MENU_KEY" ]] && ! is_valid_fzf_key "$ACTION_MENU_KEY" && \
     invalid_keys+=("action_menu_key: $ACTION_MENU_KEY")
 
@@ -316,8 +324,10 @@ parse_config() {
         popup_key) POPUP_KEY="$value" ;;
         window_key) WINDOW_KEY="$value" ;;
         background_window_key) BACKGROUND_WINDOW_KEY="$value" ;;
-        pane_horizontal_key) PANE_HORIZONTAL_KEY="$value" ;;
-        pane_vertical_key) PANE_VERTICAL_KEY="$value" ;;
+        pane_right_key) PANE_RIGHT_KEY="$value" ;;
+        pane_left_key) PANE_LEFT_KEY="$value" ;;
+        pane_above_key) PANE_ABOVE_KEY="$value" ;;
+        pane_below_key) PANE_BELOW_KEY="$value" ;;
         action_menu_key) ACTION_MENU_KEY="$value" ;;
         esac
       elif [[ "$current_section" == "taskrunner" ]]; then

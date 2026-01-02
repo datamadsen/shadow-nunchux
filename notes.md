@@ -6,7 +6,4 @@ may show just files there. When the user moves to ~/b those just recipes still
 show because they are cached. When the menu refreshes in ~/b the items will
 dissapear. Maybe we could know this already in the cache and say that just
 recipes (and npm scripts) are only valid for the directory where they were found.
-
-
-
 <!-- vim: set ft=markdown ts=2 sw=2 et: -->

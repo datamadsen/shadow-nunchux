@@ -34,16 +34,19 @@ New keyboard shortcuts to open items in a specific mode, bypassing primary/secon
 | `popup_key` | `ctrl-p` | Open in popup |
 | `window_key` | `ctrl-w` | Open in window |
 | `background_window_key` | `ctrl-b` | Open in background window |
-| `pane_horizontal_key` | `ctrl-h` | Open in horizontal split pane |
-| `pane_vertical_key` | `ctrl-v` | Open in vertical split pane |
+| `pane_right_key` | `ctrl-right` | Open in pane to the right |
+| `pane_left_key` | `ctrl-left` | Open in pane to the left |
+| `pane_above_key` | `ctrl-up` | Open in pane above |
+| `pane_below_key` | `ctrl-down` | Open in pane below |
 
 These are disabled by default. Configure only the ones you need:
 
 ```ini
 [settings]
-# Just enable horizontal/vertical pane shortcuts
-pane_horizontal_key = ctrl-h
-pane_vertical_key = ctrl-v
+pane_right_key = ctrl-right
+pane_left_key = ctrl-left
+pane_above_key = ctrl-up
+pane_below_key = ctrl-down
 ```
 
 Or enable all action shortcuts:
@@ -53,15 +56,13 @@ Or enable all action shortcuts:
 popup_key = ctrl-p
 window_key = ctrl-w
 background_window_key = ctrl-b
-pane_horizontal_key = ctrl-h
-pane_vertical_key = ctrl-v
+pane_right_key = ctrl-right
+pane_left_key = ctrl-left
+pane_above_key = ctrl-up
+pane_below_key = ctrl-down
 ```
 
-Works on apps, taskrunners, and dirbrowser files. Configured shortcuts appear in the help header (toggle with `Ctrl-/`):
-
-```
-Enter: popup | Ctrl-O: window | Ctrl-X: kill | Ctrl-H: hsplit | Ctrl-V: vsplit
-```
+Works on apps, taskrunners, and dirbrowser files. Configured shortcuts appear in the help header (toggle with `Ctrl-/`).
 
 Note: These keys are reserved and cannot be used as item shortcuts.
 
@@ -72,8 +73,10 @@ Press `ctrl-j` to open an action selection menu for the currently highlighted it
 - Open in popup
 - Open in window
 - Open in background window
-- Open in horizontal split
-- Open in vertical split
+- Open in pane to the right
+- Open in pane to the left
+- Open in pane above
+- Open in pane below
 
 This provides quick access to all launch modes without needing to configure dedicated shortcuts for each action.
 

@@ -233,11 +233,17 @@ taskrunner_launch() {
     background_window)
       _taskrunner_open_window "$task_name" "$cmd" "$dir" false
       ;;
-    pane_horizontal)
-      _taskrunner_open_pane "$task_name" "$cmd" "$dir" "-h"
+    pane_right)
+      _taskrunner_open_pane "$task_name" "$cmd" "$dir" "-h" ""
       ;;
-    pane_vertical)
-      _taskrunner_open_pane "$task_name" "$cmd" "$dir" "-v"
+    pane_left)
+      _taskrunner_open_pane "$task_name" "$cmd" "$dir" "-h" "-b"
+      ;;
+    pane_below)
+      _taskrunner_open_pane "$task_name" "$cmd" "$dir" "-v" ""
+      ;;
+    pane_above)
+      _taskrunner_open_pane "$task_name" "$cmd" "$dir" "-v" "-b"
       ;;
     *)
       # Unknown action, default to window
@@ -341,12 +347,13 @@ NUNCHUX_EOF
 }
 
 # Open taskrunner in a split pane
-# Args: task_name cmd dir split_flag (-h or -v)
+# Args: task_name cmd dir split_flag (-h or -v) before_flag (-b or empty)
 _taskrunner_open_pane() {
   local task_name="$1"
   local cmd="$2"
   local dir="$3"
   local split_flag="$4"
+  local before_flag="${5:-}"
 
   # Build the command with environment setup
   local full_cmd="source '$NUNCHUX_BIN_DIR/nunchux-run'; $cmd"'
@@ -361,7 +368,11 @@ echo
 echo "Press any key to close..."
 read -n 1 -s'
 
-  tmux split-window "$split_flag" -c "$dir" bash -c "$full_cmd"
+  if [[ -n "$before_flag" ]]; then
+    tmux split-window "$split_flag" "$before_flag" -c "$dir" bash -c "$full_cmd"
+  else
+    tmux split-window "$split_flag" -c "$dir" bash -c "$full_cmd"
+  fi
 }
 
 # Kill a taskrunner window by name (format: runner:task)
