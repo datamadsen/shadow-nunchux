@@ -2,6 +2,26 @@
 
 All notable changes to nunchux will be documented in this file.
 
+## [2.4.0]
+
+### Performance Improvements
+
+Startup time reduced by ~40-50% through subprocess elimination and config caching.
+
+**Config caching:** Parsed configuration is now cached to disk. On subsequent runs, the cached config is loaded directly instead of re-parsing the config file. The cache automatically invalidates when the config file is modified.
+
+**Subprocess reduction:** Replaced expensive subprocess calls with pure bash alternatives:
+
+| Before | After | Saves |
+|--------|-------|-------|
+| `md5sum` for cache key | Bash parameter expansion | ~10ms |
+| `tmux display-message` for CWD | `$PWD` variable | ~5ms |
+| `cd && pwd` for script paths | Conditional with `${BASH_SOURCE[0]%/*}` | ~5ms |
+| `realpath` in popup handler | `$SCRIPT_DIR` variable | ~5ms |
+| Dimension clamping tmux calls | Use max values directly | ~10ms |
+
+**Result:** Typical startup improved from ~140-190ms to ~85-105ms.
+
 ## [2.3.0]
 
 ### Working Directory in Menu Label
