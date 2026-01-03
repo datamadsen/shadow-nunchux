@@ -7,8 +7,14 @@
 [[ -n "${NUNCHUX_LIB_CORE_LOADED:-}" ]] && return
 NUNCHUX_LIB_CORE_LOADED=1
 
-# Determine library directory (handle both relative and absolute paths)
-NUNCHUX_LIB_DIR="$(cd "${BASH_SOURCE%/*}" 2>/dev/null && pwd)"
+# Determine library directory (avoid subprocess if possible)
+if [[ "${BASH_SOURCE[0]}" == /* ]]; then
+  # Absolute path - use parameter expansion (no subprocess)
+  NUNCHUX_LIB_DIR="${BASH_SOURCE[0]%/*}"
+else
+  # Relative path - need to resolve
+  NUNCHUX_LIB_DIR="$(cd "${BASH_SOURCE[0]%/*}" 2>/dev/null && pwd)"
+fi
 NUNCHUX_ROOT_DIR="${NUNCHUX_LIB_DIR%/*}"
 NUNCHUX_BIN_DIR="$NUNCHUX_ROOT_DIR/bin"
 NUNCHUX_MODULES_DIR="$NUNCHUX_ROOT_DIR/modules"
