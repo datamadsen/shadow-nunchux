@@ -1,0 +1,11 @@
+Test: Conflicting shortcuts
+
+Run from this directory:
+  ../../bin/nunchux
+
+Conflicts in this config:
+  - ctrl-h used by both htop and btop (duplicate)
+  - ctrl-g used by both lazygit and tig (duplicate)
+  - enter conflicts with reserved key
+  - esc conflicts with reserved key
+  - ctrl-j conflicts with action menu shortcut (reserved)

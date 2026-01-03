@@ -1,0 +1,16 @@
+Test: Invalid fzf shortcuts
+
+Run from this directory:
+  NUNCHUX_RC_FILE=$PWD/.nunchuxrc ../../bin/nunchux
+
+Or from repo root:
+  NUNCHUX_RC_FILE=test/invalid-shortcut/.nunchuxrc ./bin/nunchux
+
+Invalid shortcuts in this config:
+  - ctrl-enter   (fzf doesn't support ctrl-enter)
+  - ctrl-shift-n (shift modifiers with ctrl not supported)
+  - super-r      (super/meta key not supported)
+  - foo-bar      (nonsense key name)
+
+Valid shortcut for comparison:
+  - ctrl-h       (should work)

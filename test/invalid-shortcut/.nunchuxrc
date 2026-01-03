@@ -1,0 +1,36 @@
+# Test config with invalid fzf shortcuts
+# Run with: NUNCHUX_RC_FILE=$PWD/.nunchuxrc nunchux
+
+[settings]
+popup_width = 80%
+popup_height = 80%
+
+# Valid shortcut
+[app:htop]
+cmd = htop
+desc = Process viewer
+shortcut = ctrl-h
+
+# Invalid shortcut - ctrl-enter not supported by fzf
+[app:btop]
+cmd = btop
+desc = System monitor
+shortcut = ctrl-enter
+
+# Invalid shortcut - shift modifiers with ctrl not supported
+[app:ncdu]
+cmd = ncdu
+desc = Disk usage
+shortcut = ctrl-shift-n
+
+# Invalid shortcut - super key not supported
+[app:ranger]
+cmd = ranger
+desc = File manager
+shortcut = super-r
+
+# Invalid shortcut - nonsense key name
+[app:lazygit]
+cmd = lazygit
+desc = Git TUI
+shortcut = foo-bar

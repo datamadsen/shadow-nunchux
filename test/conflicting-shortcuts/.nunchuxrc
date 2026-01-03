@@ -1,0 +1,45 @@
+# Test config with conflicting shortcuts
+# Run with: ../../bin/nunchux
+
+[settings]
+popup_width = 80%
+popup_height = 80%
+
+# Two apps with the same shortcut
+[app:htop]
+cmd = htop
+desc = Process viewer
+shortcut = ctrl-h
+
+[app:btop]
+cmd = btop
+desc = System monitor
+shortcut = ctrl-h
+
+# Another duplicate
+[app:lazygit]
+cmd = lazygit
+desc = Git TUI
+shortcut = ctrl-g
+
+[app:tig]
+cmd = tig
+desc = Git history
+shortcut = ctrl-g
+
+# Conflict with reserved keys
+[app:ncdu]
+cmd = ncdu
+desc = Disk usage
+shortcut = enter
+
+[app:ranger]
+cmd = ranger
+desc = File manager
+shortcut = esc
+
+# ctrl-j might conflict with fzf's default down navigation
+[app:neovim]
+cmd = nvim
+desc = Editor
+shortcut = ctrl-j
