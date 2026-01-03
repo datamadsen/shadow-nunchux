@@ -11,10 +11,10 @@ NUNCHUX_LIB_MENU_LOADED=1
 SHOW_SHORTCUTS="${SHOW_SHORTCUTS:-}"
 
 # FZF styling defaults (can be overridden in config)
-FZF_PROMPT="${FZF_PROMPT:-> }"
-FZF_POINTER="${FZF_POINTER:-▶}"
-FZF_BORDER="${FZF_BORDER:-none}"
-FZF_COLORS="${FZF_COLORS:-fg+:white:bold,bg+:-1,hl:cyan,hl+:cyan:bold,pointer:cyan,marker:green,header:gray,border:gray}"
+FZF_PROMPT="${FZF_PROMPT:-}"
+FZF_POINTER="${FZF_POINTER:-▌}"
+FZF_BORDER="${FZF_BORDER:-rounded}"
+FZF_COLORS="${FZF_COLORS:-fg+:white:bold,bg+:237,hl:214,hl+:214:bold,pointer:white,marker:green,header:gray,border:gray}"
 
 # Label used in borders and popup titles (can be overridden in config)
 NUNCHUX_LABEL="${NUNCHUX_LABEL:-nunchux}"
@@ -48,8 +48,8 @@ build_fzf_opts() {
   local -n opts=$1
   local header="$2"
 
-  # Build expect list: secondary key + all action keys + action menu key
-  local expect_keys="$SECONDARY_KEY"
+  # Build expect list: secondary key + all action keys + action menu key + esc for back
+  local expect_keys="$SECONDARY_KEY,esc"
   [[ -n "$POPUP_KEY" ]] && expect_keys="$expect_keys,$POPUP_KEY"
   [[ -n "$WINDOW_KEY" ]] && expect_keys="$expect_keys,$WINDOW_KEY"
   [[ -n "$BACKGROUND_WINDOW_KEY" ]] && expect_keys="$expect_keys,$BACKGROUND_WINDOW_KEY"
@@ -73,6 +73,7 @@ build_fzf_opts() {
     --border="$FZF_BORDER"
     --border-label="$FZF_BORDER_LABEL"
     --border-label-pos=3
+    --highlight-line
     --no-preview
     --expect="$expect_keys"
     --color="$FZF_COLORS"

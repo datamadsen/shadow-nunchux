@@ -103,9 +103,9 @@ dirbrowser_launch() {
   local browser_name="${name#dirbrowser:}"
 
   # Both primary and secondary keys enter the dirbrowser (like submenus)
+  # Propagate return code (2 = go back to main menu)
   launch_dirbrowse "$browser_name"
-
-  return 0
+  return $?
 }
 
 # Build directory browser file list
@@ -290,6 +290,11 @@ launch_dirbrowse() {
   local key selected_line
   key=$(echo "$selection" | head -1)
   selected_line=$(echo "$selection" | tail -1)
+
+  # Handle esc key - go back to main menu
+  if [[ "$key" == "esc" ]]; then
+    return 2
+  fi
 
   if [[ -z "$selected_line" ]]; then
     return 2

@@ -32,6 +32,10 @@ source "$NUNCHUX_LIB_DIR/action_menu.sh"
 source "$NUNCHUX_LIB_DIR/menu.sh"
 source "$NUNCHUX_LIB_DIR/config.sh"
 source "$NUNCHUX_LIB_DIR/migrate.sh"
+source "$NUNCHUX_LIB_DIR/preflight.sh"
+source "$NUNCHUX_LIB_DIR/error_screens.sh"
+source "$NUNCHUX_LIB_DIR/config_templates.sh"
+# Note: onboarding.sh is loaded lazily in bin/nunchux only when needed
 
 # Load nunchux-run for nunchux_launch function
 source "$NUNCHUX_BIN_DIR/nunchux-run"
@@ -226,21 +230,7 @@ get_current_dir() {
   tmux display-message -p '#{pane_current_path}' 2>/dev/null || pwd
 }
 
-# Nunchucks ASCII art (used in easter egg and error displays)
-read -r -d '' NUNCHUCKS_ART <<'EOF' || true
-.-o-o-o-o-o-o-o-.
-/                 \\
-[O]                 [O]
-|=|                 |=|
-| |                   | |
-| |                   | |
-| |                     | |
-| |                     | |
-|=|                       |=|
-|_|                       |_|
-EOF
-
-# Easter egg: Chuck Norris programming facts
+# Chuck Norris programming facts (for error screens)
 CHUCK_FACTS=(
   "Chuck Norris can unit test entire applications with a single assert."
   "Chuck Norris doesn't use web frameworks. The internet obeys him."
@@ -263,5 +253,10 @@ CHUCK_FACTS=(
   "Chuck Norris doesn't get compiler errors. The compiler gets Chuck Norris errors."
   "Chuck Norris can make a class that is both abstract and final."
 )
+
+# Get a random Chuck Norris fact
+random_chuck_fact() {
+  echo "${CHUCK_FACTS[$RANDOM % ${#CHUCK_FACTS[@]}]}"
+}
 
 # vim: ft=bash ts=2 sw=2 et

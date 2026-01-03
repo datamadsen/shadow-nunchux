@@ -162,7 +162,7 @@ _nunchux_launch_popup() {
   clamp_popup_dimensions width height
 
   if [[ "$type" == "app" ]]; then
-    # App popup: variable substitution, on_exit, Chuck facts on error
+    # App popup: variable substitution, on_exit, error handling
     local pane_id tmp
     pane_id=$(tmux display-message -p '#{pane_id}')
     tmp="/tmp/nunchux-tmp-$$"
@@ -174,9 +174,6 @@ _nunchux_launch_popup() {
     on_exit="${on_exit//\{pane_id\}/$pane_id}"
     on_exit="${on_exit//\{tmp\}/$tmp}"
     on_exit="${on_exit//\{dir\}/$dir}"
-
-    # Pick a random Chuck Norris fact
-    local fact="${CHUCK_FACTS[$RANDOM % ${#CHUCK_FACTS[@]}]}"
 
     cat >"$script" <<NUNCHUX_EOF
 #!/usr/bin/env bash
@@ -191,35 +188,19 @@ exit_code=\$?
 # Run on_exit if defined
 $on_exit
 
-# If command failed, show Chuck Norris error
+# If command failed, show error with Chuck Norris fact
 if [[ \$exit_code -ne 0 ]]; then
-    clear
-    center() {
-        local text="\$1"
-        local width=\$(tput cols)
-        local plain=\$(echo -e "\$text" | sed 's/\x1b\[[0-9;]*m//g')
-        local text_len=\${#plain}
-        local padding=\$(( (width - text_len) / 2 ))
-        [[ \$padding -gt 0 ]] && printf "%*s" \$padding ""
-        echo -e "\$text"
-    }
-    height=\$(tput lines)
-    top_padding=\$(( (height - 18) / 2 ))
-    for ((i=0; i<top_padding; i++)); do echo; done
-    center "\033[1;33m$fact\033[0m"
     echo ""
-    center "\033[90mbut...\033[0m"
-    echo ""
-    while IFS= read -r line; do center "\$line"; done <<< "$NUNCHUCKS_ART"
-    echo ""
+    echo -e "\033[1;33m\$(random_chuck_fact)\033[0m"
+    echo -e "\033[90mbut...\033[0m"
     echo ""
     if [[ \$exit_code -eq 127 ]]; then
-        center "\033[1;31mCommand not found: $name\033[0m"
+        echo -e "\033[1;31mCommand not found: $name\033[0m"
     else
-        center "\033[1;31m$name exited with code \$exit_code\033[0m"
+        echo -e "\033[1;31m$name exited with code \$exit_code\033[0m"
     fi
     echo ""
-    center "\033[90mpress any key\033[0m"
+    echo "Press any key..."
     read -n 1 -s
 fi
 rm -f "$script"

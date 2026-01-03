@@ -100,9 +100,9 @@ menu_launch() {
 
   local menu_name="${name#menu:}"
 
-  # Easter egg: ctrl-o on submenu
+  # Show error if trying to open submenu in window (not supported)
   if [[ "$key" == "ctrl-o" ]]; then
-    show_chuck_easter_egg
+    show_submenu_window_error
     return 0
   fi
 
@@ -124,48 +124,16 @@ menu_has_items() {
   [[ ${#MENU_ORDER[@]} -gt 0 ]]
 }
 
-# Easter egg: Chuck Norris fact when trying to open submenu in window
-show_chuck_easter_egg() {
-  local fact="${CHUCK_FACTS[$RANDOM % ${#CHUCK_FACTS[@]}]}"
-  local script_file="/tmp/nunchux-popup-$$"
-
-  cat >"$script_file" <<NUNCHUX_EOF
-#!/usr/bin/env bash
-
-center() {
-    local text="\$1"
-    local width=\$(tput cols)
-    local plain=\$(echo -e "\$text" | sed 's/\x1b\[[0-9;]*m//g')
-    local text_len=\${#plain}
-    local padding=\$(( (width - text_len) / 2 ))
-    [[ \$padding -gt 0 ]] && printf "%*s" \$padding ""
-    echo -e "\$text"
-}
-
-clear
-
-height=\$(tput lines)
-top_padding=\$(( (height - 18) / 2 ))
-for ((i=0; i<top_padding; i++)); do echo; done
-
-center "\033[1;33m$fact\033[0m"
-echo ""
-center "\033[90mbut...\033[0m"
-echo ""
-while IFS= read -r line; do
-    center "\$line"
-done <<< "$NUNCHUCKS_ART"
-echo ""
-echo ""
-center "\033[1;31mYou can't open a submenu in a window\033[0m"
-echo ""
-center "\033[90mpress any key\033[0m"
-read -n 1 -s
-rm -f "\$0"
-NUNCHUX_EOF
-
-  chmod +x "$script_file"
-  tmux run-shell -b "sleep 0.05; tmux display-popup -E -b rounded -w $MENU_WIDTH -h $MENU_HEIGHT '$script_file'"
+# Show error when trying to open submenu in window (not supported)
+show_submenu_window_error() {
+  echo ""
+  echo -e "\033[1;33m$(random_chuck_fact)\033[0m"
+  echo -e "\033[90mbut...\033[0m"
+  echo ""
+  echo -e "\033[1;31mSubmenus can only be opened in popups\033[0m"
+  echo ""
+  echo "Press any key..."
+  read -n 1 -s
   exit 0
 }
 
