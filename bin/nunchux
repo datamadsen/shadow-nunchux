@@ -60,15 +60,16 @@ fi
 # Set tmux environment (after preflight confirms tmux is available)
 tmux set-environment -g NUNCHUX_BIN "$NUNCHUX_BIN_DIR"
 
-# Check for old config format and offer migration
-check_and_migrate_config || exit 0
-
-# Check for old order format and offer migration
-check_and_migrate_order_config || exit 0
-
 # Load and parse config (or use cache if valid)
 config_file=$(get_config_file)
+
 if [[ -n "$config_file" ]]; then
+  # Check for old config format and offer migration (lazy-load migrate.sh)
+  if is_old_config_format "$config_file" || needs_order_migration "$config_file"; then
+    source "$NUNCHUX_LIB_DIR/migrate.sh"
+    check_and_migrate_config || exit 0
+    check_and_migrate_order_config || exit 0
+  fi
   _config_cache="$NUNCHUX_CACHE_DIR/config-${config_file//\//_}.cache"
   if is_config_cache_valid "$config_file" "$_config_cache"; then
     source "$_config_cache"

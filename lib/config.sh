@@ -409,4 +409,37 @@ has_config_file() {
   find_nunchuxrc &>/dev/null || [[ -f "$NUNCHUX_RC_FILE" ]]
 }
 
+# Quick check if config uses old format (for lazy-loading migrate.sh)
+# Returns 0 if old format detected, 1 otherwise
+is_old_config_format() {
+  local config_file="$1"
+  [[ ! -f "$config_file" ]] && return 1
+
+  # Look for section headers that aren't [settings] and don't have type: prefix
+  grep -qE '^\[([a-zA-Z0-9_/-]+)\]$' "$config_file" || return 1
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^\[([^\]]+)\]$ ]]; then
+      local section="${BASH_REMATCH[1]}"
+      [[ "$section" == "settings" || "$section" == "taskrunner" || "$section" == "order" ]] && continue
+      if [[ "$section" != *:* ]]; then
+        return 0
+      fi
+    fi
+  done <"$config_file"
+
+  return 1
+}
+
+# Quick check if config needs order migration (for lazy-loading migrate.sh)
+needs_order_migration() {
+  local config_file="$1"
+  [[ ! -f "$config_file" ]] && return 1
+
+  # Check for old per-item order= or [order:taskrunner] section
+  grep -qE '^order\s*=' "$config_file" && return 0
+  grep -qE '^\[order:taskrunner\]$' "$config_file" && return 0
+  return 1
+}
+
 # vim: ft=bash ts=2 sw=2 et

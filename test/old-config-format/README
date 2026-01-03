@@ -1,0 +1,11 @@
+Test: Old config format (triggers migration)
+
+Run from this directory:
+  ../../bin/nunchux
+
+This config uses the old format without type prefixes:
+  - [htop] instead of [app:htop]
+  - [system] instead of [menu:system]
+  - [configs] with directory= instead of [dirbrowser:configs]
+
+Should trigger the migration prompt.

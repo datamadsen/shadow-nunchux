@@ -1,0 +1,29 @@
+# Old-style nunchux config (pre-migration format)
+# Section headers don't have type: prefix
+
+[settings]
+popup_width = 80%
+popup_height = 80%
+
+# Old format: just [name] instead of [app:name]
+[htop]
+cmd = htop
+desc = Process viewer
+
+[lazygit]
+cmd = lazygit
+desc = Git TUI
+
+# Old format submenu: just [name] instead of [menu:name]
+[system]
+status = echo "load: $(cut -d' ' -f1 /proc/loadavg)"
+
+# Child of system submenu
+[system/btop]
+cmd = btop
+desc = System monitor
+
+# Old format dirbrowser: just [name] with directory key
+[configs]
+directory = ~/.config
+depth = 2

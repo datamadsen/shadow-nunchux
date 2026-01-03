@@ -1,0 +1,30 @@
+# Config with old order format (per-item order= keys)
+# Should trigger order migration
+
+[settings]
+popup_width = 80%
+popup_height = 80%
+
+[app:htop]
+cmd = htop
+desc = Process viewer
+order = 1
+
+[app:lazygit]
+cmd = lazygit
+desc = Git TUI
+order = 3
+
+[app:btop]
+cmd = btop
+desc = System monitor
+order = 2
+
+[menu:system]
+status = echo "load: $(cut -d' ' -f1 /proc/loadavg)"
+order = 4
+
+[dirbrowser:configs]
+directory = ~/.config
+depth = 2
+order = 5

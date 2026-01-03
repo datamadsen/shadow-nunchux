@@ -1,0 +1,12 @@
+Test: Old order format (triggers order migration)
+
+Run from this directory:
+  ../../bin/nunchux
+
+This config uses the old per-item order= syntax:
+  order = 1
+  order = 2
+  etc.
+
+New format uses a declarative [order] section instead.
+Should trigger the order migration prompt.
