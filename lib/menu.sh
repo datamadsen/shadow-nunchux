@@ -34,10 +34,8 @@ build_border_label() {
 
   # Add cwd if configured
   if [[ "${SHOW_CWD:-true}" == "true" ]]; then
-    local cwd
-    cwd=$(tmux display-message -p '#{pane_current_path}' 2>/dev/null || pwd)
-    # Shorten home directory to ~
-    cwd="${cwd/#$HOME/\~}"
+    # Use $PWD directly instead of tmux subprocess
+    local cwd="${PWD/#$HOME/\~}"
     label="$label ($cwd)"
   fi
 
