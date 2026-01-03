@@ -75,6 +75,9 @@ taskrunner_parse_section() {
 load_taskrunners() {
   [[ ! -d "$NUNCHUX_TASKRUNNERS_DIR" ]] && return
 
+  # Reset array (may be populated from config cache)
+  LOADED_TASKRUNNERS=()
+
   for runner_file in "$NUNCHUX_TASKRUNNERS_DIR"/*.sh; do
     [[ -f "$runner_file" ]] || continue
 
