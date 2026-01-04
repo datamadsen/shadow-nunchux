@@ -261,14 +261,16 @@ launch() {
   build_shortcut_binds shortcut_binds "$script_path"
   fzf_opts+=("${shortcut_binds[@]}")
 
-  # Add ctrl-/ toggle for shortcuts display
-  local toggle_cmd="$script_path"
-  [[ -n "$CURRENT_MENU" ]] && toggle_cmd="$toggle_cmd --submenu $CURRENT_MENU"
+  # Add toggle for shortcuts display (configurable key, default ctrl-/)
+  if [[ -n "$TOGGLE_SHORTCUTS_KEY" ]]; then
+    local toggle_cmd="$script_path"
+    [[ -n "$CURRENT_MENU" ]] && toggle_cmd="$toggle_cmd --submenu $CURRENT_MENU"
 
-  if [[ -n "$SHOW_SHORTCUTS" ]]; then
-    fzf_opts+=(--bind="ctrl-/:become($toggle_cmd --hide-shortcuts)")
-  else
-    fzf_opts+=(--bind="ctrl-/:become($toggle_cmd --show-shortcuts)")
+    if [[ -n "$SHOW_SHORTCUTS" ]]; then
+      fzf_opts+=(--bind="$TOGGLE_SHORTCUTS_KEY:become($toggle_cmd --hide-shortcuts)")
+    else
+      fzf_opts+=(--bind="$TOGGLE_SHORTCUTS_KEY:become($toggle_cmd --show-shortcuts)")
+    fi
   fi
 
   # Run with cache if valid (but skip cache when showing shortcuts to avoid hot-swap issues)

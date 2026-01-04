@@ -65,6 +65,7 @@ The `[settings]` section controls global behavior:
 | `cache_ttl` | `60` | Seconds before cache refresh (0 to disable) |
 | `exclude_patterns` | (see below) | Patterns to exclude from directory browsers |
 | `show_cwd` | `true` | Show current working directory in menu label |
+| `toggle_shortcuts_key` | `ctrl-/` | Key to toggle shortcut column visibility |
 
 ### Maximum Dimensions
 
@@ -193,7 +194,7 @@ Press the shortcut key while the menu is open to launch the item immediately.
 
 ### Viewing Shortcuts
 
-Press `Ctrl-/` to toggle the shortcut column visibility. When shown, shortcuts appear on the left:
+Press `Ctrl-/` (configurable via `toggle_shortcuts_key`) to toggle the shortcut column visibility. When shown, shortcuts appear on the left:
 
 ```
 [ctrl-g] │ ○ lazygit       Git TUI

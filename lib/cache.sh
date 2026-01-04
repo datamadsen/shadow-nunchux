@@ -128,6 +128,7 @@ save_config_cache() {
     echo "PANE_ABOVE_KEY='$PANE_ABOVE_KEY'"
     echo "PANE_BELOW_KEY='$PANE_BELOW_KEY'"
     echo "ACTION_MENU_KEY='$ACTION_MENU_KEY'"
+    echo "TOGGLE_SHORTCUTS_KEY='$TOGGLE_SHORTCUTS_KEY'"
 
     # FZF settings
     echo "FZF_PROMPT='$FZF_PROMPT'"

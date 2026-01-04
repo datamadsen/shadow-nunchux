@@ -51,6 +51,9 @@ PANE_BELOW_KEY="${PANE_BELOW_KEY:-}"
 # Note: ctrl-m is the same as Enter in terminals, so we use ctrl-j by default
 ACTION_MENU_KEY="${ACTION_MENU_KEY:-ctrl-j}"
 
+# Toggle shortcuts visibility key
+TOGGLE_SHORTCUTS_KEY="${TOGGLE_SHORTCUTS_KEY:-ctrl-/}"
+
 # Taskrunner icons
 TASKRUNNER_ICON_RUNNING="${TASKRUNNER_ICON_RUNNING:-🔄}"
 TASKRUNNER_ICON_SUCCESS="${TASKRUNNER_ICON_SUCCESS:-✅}"
@@ -329,6 +332,7 @@ parse_config() {
         pane_above_key) PANE_ABOVE_KEY="$value" ;;
         pane_below_key) PANE_BELOW_KEY="$value" ;;
         action_menu_key) ACTION_MENU_KEY="$value" ;;
+        toggle_shortcuts_key) TOGGLE_SHORTCUTS_KEY="$value" ;;
         esac
       elif [[ "$current_section" == "taskrunner" ]]; then
         # Handle taskrunner defaults
