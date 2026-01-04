@@ -78,9 +78,34 @@ dirbrowser_build_menu() {
     local dir="${DIRBROWSE_DIR[$name]:-}"
     [[ -z "$dir" ]] && continue
 
+    local depth="${DIRBROWSE_DEPTH[$name]:-1}"
+    local glob_pattern="${DIRBROWSE_GLOB[$name]:-}"
+
+    # Build find command with same filters as build_dirbrowse_menu
+    local find_args=()
+    find_args+=("$dir" -maxdepth "$depth" -type f)
+
+    # Apply exclusion patterns from config
+    IFS=',' read -ra exclude_patterns <<<"$EXCLUDE_PATTERNS"
+    for pattern in "${exclude_patterns[@]}"; do
+      pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+      pattern="${pattern%"${pattern##*[![:space:]]}"}"
+      [[ -z "$pattern" ]] && continue
+
+      if [[ "$pattern" == \** ]]; then
+        find_args+=(! -name "$pattern")
+      else
+        find_args+=(! -path "*/$pattern/*" ! -name "$pattern")
+      fi
+    done
+
+    # Apply glob filter if specified
+    if [[ -n "$glob_pattern" ]]; then
+      find_args+=(-name "$glob_pattern")
+    fi
+
     local file_count
-    # Use a subshell to avoid SIGPIPE issues with pipefail
-    file_count=$(find "$dir" -type f 2>/dev/null | wc -l | tr -d ' ')
+    file_count=$(find "${find_args[@]}" 2>/dev/null | wc -l | tr -d ' ')
     [[ "$file_count" -gt 1000 ]] && file_count="1000+"
 
     local shortcut="${DIRBROWSE_SHORTCUT[$name]:-}"

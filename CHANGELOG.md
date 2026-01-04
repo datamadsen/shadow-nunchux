@@ -2,6 +2,12 @@
 
 All notable changes to nunchux will be documented in this file.
 
+## [2.5.1]
+
+### Bug Fixes
+
+- **Fixed dirbrowser file count mismatch** - The file count shown in the main menu now respects the same filters as the actual dirbrowser (depth, exclude patterns, glob). Previously, the main menu showed a count of all files while the browser showed filtered results.
+
 ## [2.5.0]
 
 ### Bug Fixes
