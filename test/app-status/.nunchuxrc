@@ -1,0 +1,12 @@
+# Test: App status indicators
+# Verifies status= commands run and display output
+
+[app:lazygit]
+cmd = lazygit
+desc = Git TUI
+status = n=$(git status -s 2>/dev/null | wc -l | tr -d ' '); [[ $n -gt 0 ]] && echo "($n changed)"
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Process viewer
+status = echo "load: $(cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo 'N/A')"

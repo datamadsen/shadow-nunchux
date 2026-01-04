@@ -1,0 +1,5 @@
+# Test justfile for taskrunner defaults test
+
+hello:
+    echo "Hello from justfile"
+    sleep 2

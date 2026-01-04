@@ -1,0 +1,10 @@
+# Test: per-app secondary_action override
+# Verifies app's secondary_action overrides global default
+
+[settings]
+secondary_action = window
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Ctrl-O - should open in PANE RIGHT (not window)
+secondary_action = pane_right

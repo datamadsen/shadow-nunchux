@@ -7,7 +7,7 @@ popup_height = 80%
 
 # Old format: just [name] instead of [app:name]
 [htop]
-cmd = htop
+cmd = echo "Hello world" && sleep 1
 desc = Process viewer
 
 [lazygit]

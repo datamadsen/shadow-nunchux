@@ -6,8 +6,8 @@ popup_width = 80%
 popup_height = 80%
 
 # Valid shortcut
-[app:htop]
-cmd = htop
+[app:hello]
+cmd = echo "Hello world" && sleep 1
 desc = Process viewer
 shortcut = ctrl-h
 

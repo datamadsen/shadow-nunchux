@@ -1,0 +1,7 @@
+# Test: popup action
+# Verifies Enter opens app in popup overlay
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Enter - should open in POPUP
+primary_action = popup

@@ -1,0 +1,7 @@
+# Test: pane_left action
+# Verifies Enter opens app in pane to the left
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Enter - should open in PANE to LEFT
+primary_action = pane_left

@@ -1,0 +1,8 @@
+# Test: Directory browser
+# Verifies dirbrowser with various options
+
+[dirbrowser:config]
+directory = ~/.config
+depth = 2
+sort = modified-folder
+cache_ttl = 300

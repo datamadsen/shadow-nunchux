@@ -1,0 +1,9 @@
+# Test: direct window_key shortcut
+# Verifies window_key opens app in window directly
+
+[settings]
+window_key = ctrl-w
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Ctrl-W to open in window

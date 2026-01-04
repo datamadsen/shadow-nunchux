@@ -1,0 +1,7 @@
+# Test: background_window action
+# Verifies Enter opens app in new window but focus stays in current pane
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Enter - should open in BACKGROUND window
+primary_action = background_window

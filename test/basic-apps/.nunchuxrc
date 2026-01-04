@@ -1,0 +1,14 @@
+# Test: Basic app definitions
+# Verifies simple apps with cmd and desc work correctly
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Process viewer
+
+[app:btop]
+cmd = btop
+desc = System monitor
+
+[app:lazygit]
+cmd = lazygit
+desc = Git TUI

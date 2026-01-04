@@ -1,0 +1,5 @@
+# Test: taskrunner default actions
+# Verifies taskrunner uses window (not popup) by default
+
+[taskrunner:just]
+enabled = true

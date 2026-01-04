@@ -1,0 +1,17 @@
+# Test: App shortcuts
+# Verifies shortcut= key bindings work
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Process viewer
+shortcut = ctrl-h
+
+[app:btop]
+cmd = btop
+desc = System monitor
+shortcut = ctrl-b
+
+[app:lazygit]
+cmd = lazygit
+desc = Git TUI
+shortcut = ctrl-g

@@ -1,0 +1,6 @@
+# Test: action menu with default key (ctrl-j)
+# Verifies ctrl-j opens the action picker
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press ctrl-j - should show action menu

@@ -1,0 +1,18 @@
+# Test: Submenus with nested apps
+# Verifies menu definitions and child apps work
+
+[menu:system]
+desc = System tools
+status = echo "load: $(cut -d' ' -f1 /proc/loadavg 2>/dev/null || echo 'N/A')"
+
+[app:system/htop]
+cmd = echo "Hello world" && sleep 1
+desc = Process viewer
+
+[app:system/btop]
+cmd = btop
+desc = System monitor
+
+[app:system/ncdu]
+cmd = ncdu
+desc = Disk usage analyzer

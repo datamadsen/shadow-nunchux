@@ -1,0 +1,9 @@
+# Test: direct popup_key shortcut
+# Verifies popup_key opens app in popup directly
+
+[settings]
+popup_key = ctrl-p
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Ctrl-P to open in popup

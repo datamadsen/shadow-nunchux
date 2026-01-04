@@ -1,0 +1,7 @@
+# Test: window action
+# Verifies Enter opens app in new tmux window
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Enter - should open in WINDOW
+primary_action = window

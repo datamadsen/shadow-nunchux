@@ -1,0 +1,9 @@
+# Test: action menu with custom key
+# Verifies custom action_menu_key works
+
+[settings]
+action_menu_key = ctrl-a
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press ctrl-a - should show action menu

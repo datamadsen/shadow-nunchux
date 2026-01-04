@@ -1,0 +1,10 @@
+# Test: per-app primary_action override
+# Verifies app's primary_action overrides global default
+
+[settings]
+primary_action = popup
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Enter - should open in WINDOW (not popup)
+primary_action = window

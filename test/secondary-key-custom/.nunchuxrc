@@ -1,0 +1,10 @@
+# Test: custom secondary key
+# Verifies custom secondary_key works
+
+[settings]
+secondary_key = ctrl-s
+secondary_action = window
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Ctrl-S - should open in WINDOW

@@ -1,0 +1,9 @@
+# Test: secondary key (default Ctrl-O)
+# Verifies Ctrl-O triggers secondary_action (window)
+
+[settings]
+secondary_action = window
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Ctrl-O - should open in WINDOW

@@ -1,0 +1,7 @@
+# Test: pane_above action
+# Verifies Enter opens app in pane above
+
+[app:hello]
+cmd = echo "Hello world" && sleep 1
+desc = Press Enter - should open in PANE ABOVE
+primary_action = pane_above
