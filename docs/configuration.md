@@ -295,8 +295,8 @@ on_exit = echo "done"
 
 | Variable | Description |
 |----------|-------------|
-| `{pane_id}` | Parent tmux pane ID |
-| `{tmp}` | Fresh temp file path |
+| `{pane_id}` | Parent tmux pane ID (for `tmux send-keys -t {pane_id}`) |
+| `{tmp}` | Fresh temp file path (for passing data to on_exit) |
 | `{dir}` | Starting directory |
 
 ## Submenus
@@ -339,7 +339,7 @@ sort = modified-folder
 sort_direction = descending
 glob = *.conf
 cache_ttl = 300
-width = 90
+width = 90 # Use 90% for 90%. 90 will be columns
 height = 80
 ```
 
@@ -351,8 +351,8 @@ height = 80
 | `sort_direction` | `descending` | `ascending` or `descending` |
 | `glob` | (none) | Filter files by pattern (e.g., `*.conf`) |
 | `cache_ttl` | `300` | Cache duration in seconds |
-| `width` | `90` | Popup width |
-| `height` | `80` | Popup height |
+| `width` | `90` | Popup width (percentage or columns) |
+| `height` | `80` | Popup height (percentage or columns) |
 | `primary_action` | `popup` | Override primary action |
 | `secondary_action` | `window` | Override secondary action |
 | `shortcut` | (none) | Keyboard shortcut (e.g., `ctrl-c`) |
