@@ -7,12 +7,14 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"nunchux/internal/config"
 	"nunchux/internal/fzf"
 	"nunchux/internal/items"
+	"nunchux/internal/onboarding"
 	"nunchux/internal/tmux"
 	"nunchux/internal/ui"
 )
@@ -85,6 +87,7 @@ func main() {
 	killFlag := flag.String("kill", "", "Kill window by name")
 	menuFlag := flag.Bool("menu", false, "Output menu content (for fzf reload)")
 	shellInitFlag := flag.String("shell-init", "", "Output shell init code (bash/zsh/fish)")
+	initFlag := flag.Bool("init", false, "Run first-time setup wizard (internal)")
 	flag.Parse()
 
 	if *logFlag {
@@ -99,6 +102,12 @@ func main() {
 
 	if *shellInitFlag != "" {
 		printShellInit(*shellInitFlag)
+		return
+	}
+
+	// Handle --init flag (setup wizard mode)
+	if *initFlag {
+		runInitWizard()
 		return
 	}
 
@@ -137,9 +146,13 @@ func main() {
 		os.Exit(1)
 	}
 	if cfgPath == "" {
-		logError("No config file found")
-		ui.ShowError(fmt.Errorf("no config file found"))
-		os.Exit(1)
+		// No config file - relaunch in a popup with border for onboarding
+		// Use run-shell -b with sleep to let current popup close first
+		logInfo("No config file found, launching setup wizard in popup")
+		exe, _ := os.Executable()
+		popupCmd := fmt.Sprintf("sleep 0.05; tmux display-popup -E -b rounded -T ' nunchux setup ' -w 60%% -h 50%% '%s' --init", exe)
+		exec.Command("tmux", "run-shell", "-b", popupCmd).Run()
+		os.Exit(0)
 	}
 
 	logDebug("Loading config from %s", cfgPath)
@@ -552,6 +565,16 @@ func runMenu(registry *items.Registry, tmuxClient *tmux.Client, currentMenu stri
 			continue
 		}
 
+		// Handle special empty-config menu items
+		if sel.Name == "__edit_config" {
+			handleEditConfig(registry, tmuxClient)
+			return
+		}
+		if sel.Name == "__open_docs" {
+			handleOpenDocs()
+			return
+		}
+
 		// Check for taskrunner items first (format: runner:task)
 		if strings.Contains(sel.Name, ":") && !strings.HasPrefix(sel.Name, "dirbrowser:") {
 			trItem := registry.FindTaskrunnerItem(sel.Name)
@@ -632,4 +655,55 @@ func runMenu(registry *items.Registry, tmuxClient *tmux.Client, currentMenu stri
 			return
 		}
 	}
+}
+
+// runInitWizard runs the first-time setup wizard (called via --init flag)
+func runInitWizard() {
+	configPath := onboarding.GetDefaultConfigPath()
+	result := onboarding.RunSetup(configPath)
+	if result.Canceled {
+		os.Exit(0)
+	}
+	// Config was created - exit so user can restart nunchux
+	os.Exit(0)
+}
+
+// handleEditConfig opens the config file in the user's editor
+func handleEditConfig(registry *items.Registry, tmuxClient *tmux.Client) {
+	cfgPath, _ := config.FindConfigFile()
+	if cfgPath == "" {
+		cfgPath = onboarding.GetDefaultConfigPath()
+	}
+
+	editor := ui.GetEditorCommand()
+	cmd := fmt.Sprintf("%s %q", editor, cfgPath)
+
+	tmuxClient.Launch(tmux.LaunchOptions{
+		Action:    config.ActionPopup,
+		Name:      "config",
+		Cmd:       cmd,
+		Width:     registry.Settings.PopupWidth,
+		Height:    registry.Settings.PopupHeight,
+		MaxWidth:  registry.Settings.MaxPopupWidth,
+		MaxHeight: registry.Settings.MaxPopupHeight,
+		IsApp:     false,
+	})
+}
+
+// handleOpenDocs opens the documentation in a browser
+func handleOpenDocs() {
+	docsURL := "https://github.com/datamadsen/nunchux/blob/main/docs/configuration.md"
+
+	// Use tmux run-shell -b to run outside the popup
+	var openCmd string
+	switch {
+	case fileExists("/usr/bin/xdg-open"):
+		openCmd = "xdg-open"
+	case fileExists("/usr/bin/open"): // macOS
+		openCmd = "open"
+	default:
+		openCmd = "xdg-open"
+	}
+
+	exec.Command("tmux", "run-shell", "-b", fmt.Sprintf("%s '%s'", openCmd, docsURL)).Run()
 }

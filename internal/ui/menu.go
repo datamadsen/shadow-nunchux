@@ -30,6 +30,11 @@ func ShowMenu(ctx context.Context, registry *items.Registry, tmuxClient *tmux.Cl
 	// Build menu content
 	menuContent := registry.BuildMenu(ctx, runningWindows, currentMenu)
 
+	// If no items, show empty config fallback menu
+	if menuContent == "" && currentMenu == "" {
+		return showEmptyConfigMenu(registry.Settings)
+	}
+
 	if menuContent == "" {
 		return &Selection{Canceled: true}, nil
 	}
@@ -171,6 +176,38 @@ func resolveAction(key string, settings *config.Settings) config.Action {
 
 	// Default to primary action
 	return settings.PrimaryAction
+}
+
+// showEmptyConfigMenu shows fallback menu when config has no items
+func showEmptyConfigMenu(settings *config.Settings) (*Selection, error) {
+	// Build menu with two options
+	menuContent := "Edit config file\t\t__edit_config\nOpen documentation\t\t__open_docs"
+
+	builder := fzf.NewOptionsBuilder(settings)
+	builder.BorderLabel(" nunchux ")
+	builder.Header("No items configured. Add some apps to your config file.")
+
+	sel, err := fzf.Run(menuContent, builder.Build())
+	if err != nil {
+		return nil, err
+	}
+
+	if sel.Canceled {
+		return &Selection{Canceled: true}, nil
+	}
+
+	if sel.Key == "esc" {
+		return &Selection{Back: true}, nil
+	}
+
+	if len(sel.Fields) < 3 {
+		return &Selection{Canceled: true}, nil
+	}
+
+	return &Selection{
+		Name: sel.Fields[2],
+		Key:  sel.Key,
+	}, nil
 }
 
 // ShowActionMenu displays the action selection menu
