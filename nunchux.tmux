@@ -25,7 +25,7 @@ get_platform() {
 # Download binary from GitHub releases
 download_binary() {
     local platform="$1"
-    local url="https://github.com/datamadsen/nunchux/releases/latest/download/nunchux-${platform}"
+    local url="https://github.com/datamadsen/shadow-nunchux/releases/latest/download/nunchux-${platform}"
 
     mkdir -p "$CURRENT_DIR/bin"
     if command -v curl &>/dev/null; then
