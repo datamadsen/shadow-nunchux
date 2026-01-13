@@ -2,6 +2,8 @@ package items
 
 import (
 	"context"
+
+	"nunchux/internal/config"
 )
 
 // ItemType identifies the kind of menu item
@@ -34,4 +36,10 @@ type Item interface {
 
 	// DisplayName returns the name shown in the menu (for width calculation)
 	DisplayName() string
+
+	// GetPrimaryAction returns the primary action for this item
+	GetPrimaryAction() config.Action
+
+	// GetSecondaryAction returns the secondary action for this item
+	GetSecondaryAction() config.Action
 }

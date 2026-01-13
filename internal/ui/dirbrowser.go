@@ -63,8 +63,41 @@ func ShowDirbrowser(ctx context.Context, db *items.DirbrowserItem, settings *con
 	return &DirbrowserSelection{
 		FilePath: sel.Fields[1],
 		Key:      sel.Key,
-		Action:   resolveAction(sel.Key, settings),
+		Action:   resolveActionForDirbrowser(sel.Key, db, settings),
 	}, nil
+}
+
+// resolveActionForDirbrowser determines the action based on key pressed and dirbrowser settings
+func resolveActionForDirbrowser(key string, db *items.DirbrowserItem, settings *config.Settings) config.Action {
+	// Direct action keys always override item settings (only if key is set)
+	if key != "" {
+		switch key {
+		case settings.PopupKey:
+			return config.ActionPopup
+		case settings.WindowKey:
+			return config.ActionWindow
+		case settings.BackgroundWindowKey:
+			return config.ActionBackgroundWindow
+		case settings.PaneRightKey:
+			return config.ActionPaneRight
+		case settings.PaneLeftKey:
+			return config.ActionPaneLeft
+		case settings.PaneAboveKey:
+			return config.ActionPaneAbove
+		case settings.PaneBelowKey:
+			return config.ActionPaneBelow
+		}
+	}
+
+	// Use dirbrowser-specific actions
+	switch key {
+	case settings.SecondaryKey:
+		return db.GetSecondaryAction()
+	case "", settings.PrimaryKey:
+		return db.GetPrimaryAction()
+	}
+
+	return db.GetPrimaryAction()
 }
 
 func buildDirbrowserOptions(settings *config.Settings, name string) []string {

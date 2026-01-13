@@ -615,7 +615,7 @@ func runMenu(registry *items.Registry, tmuxClient *tmux.Client, currentMenu stri
 				return
 			}
 
-			// Handle action menu key
+			// Handle action menu key (user picks action from a menu)
 			action := sel.Action
 			if sel.Key == registry.Settings.ActionMenuKey {
 				var err error
@@ -623,11 +623,6 @@ func runMenu(registry *items.Registry, tmuxClient *tmux.Client, currentMenu stri
 				if err != nil || action == "" {
 					continue // User canceled
 				}
-			}
-
-			// Resolve action from app config if not set
-			if action == "" {
-				action = app.GetPrimaryAction()
 			}
 
 			// Launch the app

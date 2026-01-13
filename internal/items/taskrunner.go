@@ -146,6 +146,16 @@ func (d *TaskrunnerDivider) IsDivider() bool {
 	return true
 }
 
+// GetPrimaryAction returns empty - dividers aren't selectable
+func (d *TaskrunnerDivider) GetPrimaryAction() config.Action {
+	return ""
+}
+
+// GetSecondaryAction returns empty - dividers aren't selectable
+func (d *TaskrunnerDivider) GetSecondaryAction() config.Action {
+	return ""
+}
+
 // LoadTaskrunnerTasks loads tasks from a taskrunner provider script
 func LoadTaskrunnerTasks(ctx context.Context, cfg config.TaskrunnerConfig, settings *config.Settings) ([]TaskrunnerTask, string, string, error) {
 	// Find the provider script
@@ -212,6 +222,11 @@ func findProviderScript(name string, binDir string) string {
 
 // getPaneCurrentPath returns the tmux pane's current working directory
 func getPaneCurrentPath() string {
+	// Allow override via environment (useful for testing)
+	if override := os.Getenv("NUNCHUX_CWD"); override != "" {
+		return override
+	}
+
 	output, err := exec.Command("tmux", "display-message", "-p", "#{pane_current_path}").Output()
 	if err != nil {
 		// Fall back to current working directory

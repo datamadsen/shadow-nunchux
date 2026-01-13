@@ -62,10 +62,15 @@ func ShowMenu(ctx context.Context, registry *items.Registry, tmuxClient *tmux.Cl
 		return &Selection{Canceled: true}, nil
 	}
 
+	name := sel.Fields[2]
+
+	// Resolve action using item-specific settings
+	action := resolveActionForItem(sel.Key, name, registry)
+
 	return &Selection{
-		Name:   sel.Fields[2],
+		Name:   name,
 		Key:    sel.Key,
-		Action: resolveAction(sel.Key, registry.Settings),
+		Action: action,
 	}, nil
 }
 
@@ -150,31 +155,57 @@ func buildFzfOptions(settings *config.Settings, currentMenu string, shortcuts ma
 	return builder.Build()
 }
 
-// resolveAction determines the action from the key pressed
-func resolveAction(key string, settings *config.Settings) config.Action {
-	// Direct action keys
+// resolveActionForItem determines the action based on key pressed and item-specific settings
+func resolveActionForItem(key string, name string, registry *items.Registry) config.Action {
+	settings := registry.Settings
+
+	// Direct action keys always override item settings (only if key is set)
+	if key != "" {
+		switch key {
+		case settings.PopupKey:
+			return config.ActionPopup
+		case settings.WindowKey:
+			return config.ActionWindow
+		case settings.BackgroundWindowKey:
+			return config.ActionBackgroundWindow
+		case settings.PaneRightKey:
+			return config.ActionPaneRight
+		case settings.PaneLeftKey:
+			return config.ActionPaneLeft
+		case settings.PaneAboveKey:
+			return config.ActionPaneAbove
+		case settings.PaneBelowKey:
+			return config.ActionPaneBelow
+		}
+	}
+
+	// Look up item to get its specific action settings
+	item := registry.FindItem(name)
+	if item == nil {
+		// Try taskrunner items
+		if trItem := registry.FindTaskrunnerItem(name); trItem != nil {
+			item = trItem
+		}
+	}
+
+	// Use item-specific actions if available
+	if item != nil {
+		switch key {
+		case settings.SecondaryKey:
+			return item.GetSecondaryAction()
+		case "", settings.PrimaryKey:
+			return item.GetPrimaryAction()
+		}
+	}
+
+	// Fallback to global settings
 	switch key {
-	case settings.PopupKey:
-		return config.ActionPopup
-	case settings.WindowKey:
-		return config.ActionWindow
-	case settings.BackgroundWindowKey:
-		return config.ActionBackgroundWindow
-	case settings.PaneRightKey:
-		return config.ActionPaneRight
-	case settings.PaneLeftKey:
-		return config.ActionPaneLeft
-	case settings.PaneAboveKey:
-		return config.ActionPaneAbove
-	case settings.PaneBelowKey:
-		return config.ActionPaneBelow
 	case settings.SecondaryKey:
 		return settings.SecondaryAction
 	case "", settings.PrimaryKey:
 		return settings.PrimaryAction
 	}
 
-	// Default to primary action
 	return settings.PrimaryAction
 }
 

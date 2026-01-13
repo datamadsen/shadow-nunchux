@@ -62,6 +62,16 @@ func (m *MenuItem) FormatLine(ctx context.Context, isRunning bool) string {
 	)
 }
 
+// GetPrimaryAction returns empty - menus don't have actions (they open submenus)
+func (m *MenuItem) GetPrimaryAction() config.Action {
+	return ""
+}
+
+// GetSecondaryAction returns empty - menus don't have actions
+func (m *MenuItem) GetSecondaryAction() config.Action {
+	return ""
+}
+
 func (m *MenuItem) getStatus(ctx context.Context) string {
 	if m.Menu.Status == "" {
 		return ""

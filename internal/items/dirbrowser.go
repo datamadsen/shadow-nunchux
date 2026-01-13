@@ -80,6 +80,20 @@ func (d *DirbrowserItem) GetHeight() string {
 	return d.Settings.PopupHeight
 }
 
+func (d *DirbrowserItem) GetPrimaryAction() config.Action {
+	if d.Dirbrowser.PrimaryAction != "" {
+		return d.Dirbrowser.PrimaryAction
+	}
+	return d.Settings.PrimaryAction
+}
+
+func (d *DirbrowserItem) GetSecondaryAction() config.Action {
+	if d.Dirbrowser.SecondaryAction != "" {
+		return d.Dirbrowser.SecondaryAction
+	}
+	return d.Settings.SecondaryAction
+}
+
 // getFileCount returns the number of files in the directory
 func (d *DirbrowserItem) getFileCount(ctx context.Context) int {
 	ctx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
